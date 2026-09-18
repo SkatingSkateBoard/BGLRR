@@ -1,12 +1,10 @@
 import { DeepgramClient } from '@deepgram/sdk';
 
-const DEEPGRAM_API_KEY = '29c1df14b47dfa25b9c1395c62bd2ec04a2796ce';
-
 // Note: This is an English stream, update accordingly for other languages
 const STREAM_URL = 'https://playerservices.streamtheworld.com/api/livestream-redirect/CSPANRADIOAAC.aac';
 
 const live = async () => {
-  const deepgram = new DeepgramClient({ apiKey: DEEPGRAM_API_KEY });
+  const deepgram = new DeepgramClient({ apiKey: process.env.DEEPGRAM_API_KEY! });
 
   const socket = await deepgram.listen.v1.createConnection({
     model: 'nova-3',

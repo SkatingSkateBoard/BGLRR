@@ -17,7 +17,7 @@ export default async function HomePage() {
   }
 
   return (
-    <main>
+    <>
       <h1>Residents</h1>
 
       {residents.length === 0 ? (
@@ -31,6 +31,6 @@ export default async function HomePage() {
           ))}
         </ul>
       )}
-    </main>
+    </>
   );
 }
