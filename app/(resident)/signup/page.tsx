@@ -11,6 +11,7 @@ export default function SignupPage() {
   const router = useRouter();
   const supabase = createClient();
 
+  // Ensuring fallback values fixes the warning on autofill
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -36,7 +37,7 @@ export default function SignupPage() {
     }
 
     setLoading(true);
-
+    // Attempts to sign up user with Supabase
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -61,71 +62,69 @@ export default function SignupPage() {
 
   return (
     <main className="signup-page">
-      <section className="signup-card">
-        <div className="signup-header">
-          <h1>Create an account</h1>
-          <p>Sign up to get started.</p>
-        </div>
+      <h1>Register your resident account</h1>
+        <form onSubmit={handleSubmit}>
+          <fieldset>
+            <legend>General Information</legend>
+              
+              <div className="form-row">
+                <label htmlFor="first-name">First Name</label>
+                <input type="text" id="first-name" name="first_name" autoComplete="given-name" required/>
+              </div>
 
-        <form onSubmit={handleSubmit} className="general-information">
-          <div className="form-group">
-            <label htmlFor="email">Email address</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@example.com"
-              autoComplete="email"
-              required
-            />
-          </div>
+              <div className="form-row">
+                <label htmlFor="middle-name">Middle Name</label>
+                <input type="text" id="middle-name" name="middle_name" autoComplete="additional-name"/>
+              </div>
 
+              <div className="form-row">
+                <label htmlFor="last-name">Last Name</label>
+                <input type="text" id="last-name" name="last_name" autoComplete="family-name" required/>
+              </div>
 
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="At least 8 characters"
-              autoComplete="new-password"
-              required
-            />
-          </div>
+              <div className="form-row">
+                <label htmlFor="suffix">Suffix</label>
+                <input type="text" id="suffix" name="suffix" placeholder="Jr., III, etc."/>
+              </div>
 
-          <div className="form-group">
-            <label htmlFor="confirm-password">Confirm password</label>
-            <input
-              id="confirm-password"
-              type="password"
-              value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
-              placeholder="Repeat your password"
-              autoComplete="new-password"
-              required
-            />
-          </div>
+              <div className="form-row">
+                <label htmlFor="email">Email Address</label>
+                <input type="email" id="email" name="email" autoComplete="email" required value={email || ""} onChange={(e) => setEmail(e.target.value)}/>
+              </div>
 
-          {error && <p className="error-message">{error}</p>}
+              <div className="form-row">
+                <label htmlFor="phone">Phone Number</label>
+                <input type="tel" id="phone" name="phone" autoComplete="tel"/>
+              </div>
 
-          {message && <p className="success-message">{message}</p>}
+              <div className="form-row">
+                <label htmlFor="age">Age</label>
+                <input type="number" id="age" name="age" autoComplete="age" required/>
+              </div>
 
-          <button
-            type="submit"
-            className="submit-button"
-            disabled={loading}
-          >
-            {loading ? "Creating account..." : "Sign up"}
-          </button>
+              <div className="form-row">
+                <label htmlFor="sex">Sex</label>
+                <input type="text" id="sex" name="sex" autoComplete="sex"/>
+              </div>
+
+              <div className="form-row">
+                <label htmlFor="password">Password</label>
+                <input type="password" id="password" name="password" autoComplete="current-password" required value={password || ""} onChange={(e) => setPassword(e.target.value)}/>
+              </div>
+
+              <div className="form-row">
+                <label htmlFor="confirm-password">Confirm Password</label>
+                <input type="password" id="confirm-password" name="confirm_password" autoComplete="current-password" required value={confirmPassword || ""} onChange={(e) => setConfirmPassword(e.target.value)}/>
+              </div>
+
+              <button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-200">
+                {loading ? "Creating account..." : "Create Account"}
+              </button>
+
+              {error && <p className="error">{error}</p>}
+              {message && <p className="message">{message}</p>}
+          </fieldset>
         </form>
-
-        <p className="login-link">
-          Already have an account?{" "}
-          <Link href="/login">Log in</Link>
-        </p>
-      </section>
     </main>
   );
 }
