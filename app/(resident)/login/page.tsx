@@ -1,5 +1,8 @@
 "use client";
 
+//style
+import "../../styles/loginPage.css";
+
 import { useState } from "react";
 import type {SubmitEvent} from "react";
 import { useRouter } from "next/navigation";
@@ -41,7 +44,7 @@ export default function LoginPage() {
 
       <form onSubmit={handleLogin}>
         <div>
-          <label htmlFor="email">Email</label>
+          <label htmlFor="email">Email: </label>
           <input
             id="email"
             type="email"
@@ -52,7 +55,7 @@ export default function LoginPage() {
         </div>
 
         <div>
-          <label htmlFor="password">Password</label>
+          <label htmlFor="password">Password: </label>
           <input
             id="password"
             type="password"
@@ -64,7 +67,7 @@ export default function LoginPage() {
 
         {error && <p>{error}</p>}
 
-        <button type="submit" disabled={loading}>
+        <button type="submit" disabled={loading} className="submitBtn">
           {loading ? "Logging in..." : "Log in"}
         </button>
       </form>

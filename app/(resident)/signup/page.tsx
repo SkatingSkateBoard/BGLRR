@@ -27,8 +27,8 @@ export default function SignupPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
       return;
     }
 
@@ -47,8 +47,6 @@ export default function SignupPage() {
 
     setLoading(false);
 
-    // If email confirmation is enabled in Supabase,
-    // the user must confirm their email before logging in.
     if (data.user && !data.session) {
       setMessage("Account created. Check your email to confirm your account.");
       return;
@@ -99,7 +97,7 @@ export default function SignupPage() {
         {error && <p>{error}</p>}
         {message && <p>{message}</p>}
 
-        <button type="submit" disabled={loading}>
+        <button type="submit" disabled={loading} className="submitBtn">
           {loading ? "Creating account..." : "Sign up"}
         </button>
       </form>
