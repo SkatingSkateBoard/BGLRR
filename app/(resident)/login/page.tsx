@@ -71,6 +71,10 @@ export default function LoginPage() {
           {loading ? "Logging in..." : "Log in"}
         </button>
       </form>
+
+      <p>No Account?{" "}
+        <a href="/signup">Sign Up</a>
+      </p>
     </main>
   );
 }
