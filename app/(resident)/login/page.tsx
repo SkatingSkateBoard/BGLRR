@@ -29,9 +29,19 @@ export default function LoginPage() {
     });
 
     if (error) {
-      setError(error.message);
-      setLoading(false);
+       setLoading(false);
+
+      const isEmailNotConfirmed = error.code === "email_not_confirmed" || error.message.toLowerCase().includes("email not confirmed");
+      console.log(isEmailNotConfirmed, "isEmailNotConfirmed");
+    if (isEmailNotConfirmed) {
+      sessionStorage.setItem("signupEmail", email);
+      sessionStorage.setItem("otpSource", "login");
+      router.push("/otp");
       return;
+    }
+
+    setError(error.message);
+    return;
     }
 
     router.push("/");
@@ -39,7 +49,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main>
+    <main className="login-page">
       <h1>Login</h1>
 
       <form onSubmit={handleLogin}>
