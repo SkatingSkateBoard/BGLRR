@@ -1,4 +1,4 @@
-import LiveKitRoom from "@/components/LiveKitRoom";
+import LiveKitRoom from "@/app/components/LiveKitRoom";
 
 export default function LiveKitTestPage() {
   return (
