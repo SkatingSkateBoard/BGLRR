@@ -26,8 +26,9 @@ export default function LiveKitRoom({
   const [microphoneEnabled, setMicrophoneEnabled] = useState(false);
 
   useEffect(() => {
+    // 1. Create a flag to track if this specific effect run is still active
+    let isCurrentEffect = true; 
     const room = new Room();
-
     roomRef.current = room;
 
     function handleTrackSubscribed(
@@ -35,10 +36,8 @@ export default function LiveKitRoom({
       _publication: RemoteTrackPublication
     ) {
       const audioElement = track.attach();
-
       audioElement.autoplay = true;
       audioElement.setAttribute("playsinline", "");
-
       audioContainerRef.current?.appendChild(audioElement);
     }
 
@@ -56,6 +55,8 @@ export default function LiveKitRoom({
     }
 
     function handleDisconnected() {
+      // 2. Only update state if this effect instance is still valid
+      if (!isCurrentEffect) return;
       setStatus("Disconnected");
       setMicrophoneEnabled(false);
     }
@@ -68,18 +69,20 @@ export default function LiveKitRoom({
 
     async function connect() {
       try {
+        if (!isCurrentEffect) return;
         setStatus("Getting token...");
 
         const response = await fetch(
-          `/api/livekit/token?room=${encodeURIComponent(
+          `/api/livekit-test?room=${encodeURIComponent(
             roomName
           )}&identity=${encodeURIComponent(identity)}`,
-          {
-            credentials: "include",
-          }
+          { credentials: "include" }
         );
 
         const data = await response.json();
+
+        // 3. Check again after the network await
+        if (!isCurrentEffect) return;
 
         if (!response.ok) {
           throw new Error(data.error || "Could not get LiveKit token");
@@ -89,20 +92,29 @@ export default function LiveKitRoom({
 
         await room.connect(data.url, data.token);
 
+        // 4. Check again after the connection await
+        if (!isCurrentEffect) {
+          room.disconnect();
+          return;
+        }
+
         // Voice only: enable microphone, not camera.
         await room.localParticipant.setMicrophoneEnabled(true);
+
+        if (!isCurrentEffect) return;
 
         setMicrophoneEnabled(true);
         setStatus("Connected");
       } catch (error) {
-        console.error("LiveKit connection failed:", error);
+        // 5. Ignore errors stemming from an effect that has already been discarded
+        if (!isCurrentEffect) return;
 
+        console.error("LiveKit connection failed:", error);
         setError(
           error instanceof Error
             ? error.message
             : "Could not connect to the call"
         );
-
         setStatus("Connection failed");
       }
     }
@@ -110,6 +122,9 @@ export default function LiveKitRoom({
     connect();
 
     return () => {
+      // 6. Kill this effect instance immediately on cleanup
+      isCurrentEffect = false; 
+      
       room.disconnect();
       room.removeAllListeners();
 
@@ -120,11 +135,8 @@ export default function LiveKitRoom({
 
   async function toggleMicrophone() {
     const room = roomRef.current;
-
     if (!room) return;
-
     const nextValue = !microphoneEnabled;
-
     await room.localParticipant.setMicrophoneEnabled(nextValue);
     setMicrophoneEnabled(nextValue);
   }

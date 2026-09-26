@@ -4,7 +4,7 @@ export default function LiveKitTestPage() {
   return (
     <LiveKitRoom
       roomName="test-room"
-      identity={`person-${Date.now()}`}
+      identity={`person`}
     />
   );
 }

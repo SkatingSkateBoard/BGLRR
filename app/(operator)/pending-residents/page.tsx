@@ -3,11 +3,23 @@
 import {useEffect, useState} from "react";
 import {createClient} from "@/utils/supabase/client";
 
+type Resident = {
+    id: number;
+    first_name: string;
+    last_name: string;
+    suffix: string;
+    phone: string;
+    age: number;
+    sex: string;
+    email: string;
 
-export default async function PendingResidentsPage() {
+}
+
+export default function PendingResidentsPage() {
     const supabase = createClient();
 
-    const [residents, setResidents] = useState([]);
+    const [residents, setResidents] = useState<Resident[]>([]);
+    const [activeResident, setActiveResident] = useState<Resident | null>(null);
     const [loading, setLoading] = useState(true);
 
     // Fetch pending residents from the database
@@ -16,12 +28,10 @@ export default async function PendingResidentsPage() {
             const {data, error} = await supabase
                 .from("tbl_resident")
                 .select("*")
-                .eq("status", "PENDING");
-
             if (error) {
                 console.error("Error fetching pending residents:", error);
             } else {
-                setResidents(data as any);
+                setResidents(data as Resident[]);
             }
         } catch (error) {
             console.error("Error fetching pending residents:", error);
@@ -38,14 +48,19 @@ export default async function PendingResidentsPage() {
     if (loading) {
         return <p>Loading pending residents...</p>;
     }
-
-    if (residents.length === 0) {
-        return <p>No pending residents found.</p>;
-    }
-    
     return (
         <main>
         <h1>Pending Residents</h1>
+            {residents.map((resident) => (
+                 (
+                    <div key={resident.id}>
+                    <h1>Resident: {resident.first_name} {resident.last_name}</h1>
+                    <button>Approve</button>
+                    <button>Reject</button>
+                    </div>
+                ) 
+            ))}
+        <h1>Resident Details</h1>
 
         </main>
     );
