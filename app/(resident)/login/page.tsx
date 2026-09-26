@@ -54,7 +54,7 @@ export default function LoginPage() {
 
       <form onSubmit={handleLogin}>
         <div>
-          <label htmlFor="email">Email or Phone Number: </label>
+          <label htmlFor="email">Email orrrrrr: </label>
           <input
             id="email"
             type="email"
