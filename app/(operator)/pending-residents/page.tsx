@@ -28,6 +28,7 @@ export default function PendingResidentsPage() {
             const {data, error} = await supabase
                 .from("tbl_resident")
                 .select("*")
+                .eq("status", "PENDING");
             if (error) {
                 console.error("Error fetching pending residents:", error);
             } else {

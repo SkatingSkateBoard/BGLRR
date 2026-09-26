@@ -67,6 +67,9 @@ export default function SignupPage() {
       password,
       options: {
         data: {
+          role: "resident",
+
+          //resident data 
           first_name: firstName,
           middle_name: middleName,
           last_name: lastName,
@@ -74,6 +77,7 @@ export default function SignupPage() {
           phone: phone,
           age: age,
           gender: sex, 
+
         }
       }
     });

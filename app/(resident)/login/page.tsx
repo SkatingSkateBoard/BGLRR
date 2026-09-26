@@ -1,7 +1,7 @@
 "use client";
 
 //style
-import "../../styles/loginPage.css";
+import "@/app/styles/loginPage.css";
 
 import { useState } from "react";
 import type {SubmitEvent} from "react";
