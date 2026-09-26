@@ -20,7 +20,7 @@ export default async function HomePage() {
     <main>
       <h1>Welcome</h1>
       <p>You are logged in.</p>
-
+      <h2>Role: {user?.user_metadata?.role || "No role"}</h2>
       <form action={logout}>
         <button type="submit">Logout</button>
       </form>

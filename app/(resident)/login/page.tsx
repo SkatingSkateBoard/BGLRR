@@ -3,6 +3,11 @@
 //style
 import "@/app/styles/loginPage.css";
 
+
+//actions
+import { login } from "@/app/actions/auth";
+
+//deps
 import { useState } from "react";
 import type {SubmitEvent} from "react";
 import { useRouter } from "next/navigation";
@@ -23,29 +28,29 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const result = await login(email, password)
 
-    if (error) {
-       setLoading(false);
+      if (!result.success) {
+        setLoading(false)
 
-      const isEmailNotConfirmed = error.code === "email_not_confirmed" || error.message.toLowerCase().includes("email not confirmed");
-      console.log(isEmailNotConfirmed, "isEmailNotConfirmed");
-    if (isEmailNotConfirmed) {
-      sessionStorage.setItem("signupEmail", email);
-      sessionStorage.setItem("otpSource", "login");
-      router.push("/otp");
-      return;
+        if (result.isEmailNotConfirmed) {
+          sessionStorage.setItem("signupEmail", email)
+          sessionStorage.setItem("otpSource", "login")
+          router.push("/otp")
+          return
+        }
+
+        setError(result.error || "An error occurred during login.")
+        return
+      }
+
+      router.push("/")
+      router.refresh()
+    } catch (err) {
+      setLoading(false)
+      setError("Something went wrong. Please try again.")
     }
-
-    setError(error.message);
-    return;
-    }
-
-    router.push("/");
-    router.refresh();
   }
 
   return (
