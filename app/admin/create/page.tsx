@@ -24,7 +24,6 @@ export default function CreateOperatorPage() {
       setError(result.error || 'Failed to create operator.')
     } else {
       setMessage(result.message || 'Success!')
-      event.currentTarget.reset() // Clear the form fields
     }
   }
 
