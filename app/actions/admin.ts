@@ -10,26 +10,37 @@ const supabaseAdmin = createClient(
 export async function createOperator(formData: FormData) {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
-
+  const username = formData.get('username') as string
+ 
   if (!email || !password) {
     return { success: false, error: 'Email and password are required.' }
   }
 
   try {
-    const { data, error } = await supabaseAdmin.auth.admin.createUser({
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: true, 
-      user_metadata: { 
-        role: 'operator'  
-      }
     })
 
-    if (error) {
-      return { success: false, error: error.message }
+    if (authError || !authData.user) {
+      return {
+        success: false,
+        error: authError?.message ?? 'Could not create Auth user.',
+      }
     }
 
-    return { success: true, message: `Operator ${data.user.email} created successfully!` }
+    const { error: operatorError } = await supabaseAdmin.from('operators').insert({
+      user_id: authData.user.id,
+      email: authData.user.email,
+      username: username,
+    })
+
+    if (operatorError) {
+      return { success: false, error: operatorError.message }
+    }
+
+    return { success: true, message: `Operator ${authData.user.email} created successfully!` }
   } catch (err) {
     return { success: false, error: 'An unexpected error occurred.' }
   }

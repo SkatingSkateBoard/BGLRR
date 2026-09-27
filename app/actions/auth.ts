@@ -8,7 +8,7 @@ export async function logout() {
 
   await supabase.auth.signOut();
 
-  redirect("/login");
+  redirect("/resident/login");
 }
 
 export async function login(email: string, password: string) {

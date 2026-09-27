@@ -184,7 +184,7 @@ export default function SignupPage() {
         
 
         <h1>Already have an account?</h1>
-        <Link href="/login" className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition duration-200">
+        <Link href="/resident/login" className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition duration-200">
           Sign in
         </Link>
     </main> 
