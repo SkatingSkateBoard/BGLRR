@@ -3,7 +3,7 @@
 import "@/styles/dashboard.css";
 import React, { useState, useEffect, useRef } from "react";
 import {createEmergencyRequest} from "./actions";
-
+import { useRouter } from "next/navigation";
 // Define TypeScript structure for our emergency categories
 interface EmergencyCategory {
   id: string;
@@ -13,6 +13,8 @@ interface EmergencyCategory {
 }
 
 export default function EmergencyReportPage() {
+  const router = useRouter();
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [pressedBtnId, setPressedBtnId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -104,9 +106,13 @@ export default function EmergencyReportPage() {
 
   const handleCategoryClick = async (category: string) => {
   try {
-    await createEmergencyRequest(category);
+    const result = await createEmergencyRequest(category);
 
-    console.log("Emergency request created:", category);
+
+    if (result.success) {
+      router.push(`/resident/call/${result.roomId}?token=${result.livekitToken}`);
+    }
+
   } catch (error) {
     console.error("Failed to create emergency request:", error);
   }

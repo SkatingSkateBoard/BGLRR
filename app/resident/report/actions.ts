@@ -1,19 +1,23 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
+import { AccessToken } from "livekit-server-sdk"; // Added missing import
+
+type EmergencyData = {
+  id: number; 
+  status: string;
+} | null;
 
 export async function createEmergencyRequest(category: string) {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
 
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) {
     throw new Error("User is not authenticated.");
   }
 
+ 
   const { data: resident, error: residentError } = await supabase
     .from("tbl_resident")
     .select("id")
@@ -24,24 +28,69 @@ export async function createEmergencyRequest(category: string) {
     throw new Error("Resident record not found.");
   }
 
-  const { data, error } = await supabase
+  
+  const ONE_MINUTE_AGO = new Date(Date.now() - 60 * 1000).toISOString();
+  const { data: existingReq } = await supabase
     .from("tbl_emergency_req")
-    .insert({
-      resident_id: resident.id,
-      emerg_category: category,
-    })
-    .select()
-    .single();
+    .select("id, status")
+    .eq("resident_id", resident.id)
+    .gt("created_at", ONE_MINUTE_AGO)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-  if (error) {
-    console.error("Insert error:", error);
-    throw new Error(error.message);
+  let emergencyData: EmergencyData = existingReq;
+
+  if (!existingReq) {
+    const { data, error } = await supabase
+      .from("tbl_emergency_req")
+      .insert({
+        resident_id: resident.id,
+        emerg_category: category,
+        status: "PENDING" 
+      })
+      .select("id, status") 
+      .single();
+    
+    if (error) {
+      console.error("Insert error:", error);
+      throw new Error(error.message);
+    }
+
+    console.log("Created emergency:", data);
+    emergencyData = data;
   }
 
-  console.log("Created emergency:", data);
+  if (!emergencyData) {
+    throw new Error("Failed to resolve or create an emergency request.");
+  }
+
+  const roomName = `emergency-${emergencyData.id}`;
+  const participantName = `Resident-${resident.id}`;
+
+  const apiKey = process.env.LIVEKIT_API_KEY;
+  const apiSecret = process.env.LIVEKIT_API_SECRET;
+
+  if (!apiKey || !apiSecret) {
+    throw new Error("LiveKit environment variables are missing on the server.");
+  }
+
+  const at = new AccessToken(apiKey, apiSecret, { 
+    identity: participantName 
+  });
+
+  at.addGrant({ 
+    roomJoin: true, 
+    room: roomName, 
+    canPublish: true, 
+    canSubscribe: true 
+  });
+
+  const token = await at.toJwt();
 
   return {
     success: true,
-    request: data,
+    roomId: roomName,
+    livekitToken: token,
   };
 }
