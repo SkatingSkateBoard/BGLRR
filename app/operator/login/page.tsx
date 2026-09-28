@@ -11,6 +11,7 @@ import { login } from "@/app/actions/auth";
 import { useState } from "react";
 import type {SubmitEvent} from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -32,18 +33,11 @@ export default function LoginPage() {
       if (!result.success) {
         setLoading(false)
 
-        if (result.isEmailNotConfirmed) {
-          sessionStorage.setItem("signupEmail", email)
-          sessionStorage.setItem("otpSource", "login")
-          router.push("/otp")
-          return
-        }
-
         setError(result.error || "An error occurred during login.")
         return
       }
 
-      router.push("/")
+      router.push("/operator/dashboard");
       router.refresh()
     } catch (err) {
       setLoading(false)

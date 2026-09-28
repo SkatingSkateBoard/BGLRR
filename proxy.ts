@@ -38,16 +38,42 @@ export async function proxy(request: NextRequest) {
   const claims = data?.claims
   const userId = claims?.sub
   const pathname = request.nextUrl.pathname
-  //DEF
-  if (pathname === '/resident/login') {
-    return response
+
+  //public paths
+  const publicPaths = ['/resident/login', '/unauthorized']
+
+  if (publicPaths.includes(pathname)) {
+    return response;
   }
+
+
+  const role = claims?.user_metadata?.role
+  //DEF
+  if (pathname === '/' && role === 'resident') {
+    return NextResponse.redirect(new URL('/resident/dashboard', request.url));
+  }
+
+  if (pathname === '/' && role === 'operator') {
+    return NextResponse.redirect(new URL('/operator/dashboard', request.url));
+  }
+  //tmp
+  if (pathname === '/' && role === 'admin') {
+    return NextResponse.redirect(new URL('/admin/create', request.url));
+  }
+
+
   //LOSE TOKEN
-  if (error || !userId) {
+  if (error || !userId || (!role && pathname == '/')) {
     return NextResponse.redirect(new URL('/resident/login', request.url))
   }
 
-
+console.log('AUTH DEBUG', {
+  pathname,
+  error,
+  userId,
+  claims,
+  role,
+})
   //STRICT ROUTES 
   if (pathname.startsWith('/admin')) {
     const role = claims.user_metadata?.role
@@ -56,27 +82,40 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL('/unauthorized', request.url))
     }
   }
-
+  
   if (pathname.startsWith('/resident')) {
+    
     const { data: resident, error: residentError } = await supabase
-      .from('residents')
+      .from('tbl_resident')
       .select('id')
       .eq('user_id', userId)
       .maybeSingle()
+
+      
+    console.log('RESIDENT DEBUG', {
+      userId,
+      resident,
+      residentError,
+    })
 
     if (residentError || !resident) {
       return NextResponse.redirect(new URL('/unauthorized', request.url))
     }
-
-    return NextResponse.redirect(new URL('/resident/dashboard', request.url));
   }
 
   if (pathname.startsWith('/operator')) {
     const { data: operator, error: operatorError } = await supabase
-      .from('operators')
+      .from('tbl_operator')
       .select('id')
       .eq('user_id', userId)
       .maybeSingle()
+
+    console.log('OPERATOR DEBUG', {
+      userId,
+      operator,
+      operatorError,
+    })
+
 
     if (operatorError || !operator) {
       return NextResponse.redirect(new URL('/unauthorized', request.url))
@@ -87,5 +126,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/resident/:path*', '/operator/:path*', '/admin/:path*'],
+  matcher: ['/', '/resident/:path*', '/operator/:path*', '/admin/:path*'],
 }
