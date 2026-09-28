@@ -67,13 +67,6 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/resident/login', request.url))
   }
 
-console.log('AUTH DEBUG', {
-  pathname,
-  error,
-  userId,
-  claims,
-  role,
-})
   //STRICT ROUTES 
   if (pathname.startsWith('/admin')) {
     const role = claims.user_metadata?.role
@@ -92,11 +85,6 @@ console.log('AUTH DEBUG', {
       .maybeSingle()
 
       
-    console.log('RESIDENT DEBUG', {
-      userId,
-      resident,
-      residentError,
-    })
 
     if (residentError || !resident) {
       return NextResponse.redirect(new URL('/unauthorized', request.url))
@@ -109,13 +97,6 @@ console.log('AUTH DEBUG', {
       .select('id')
       .eq('user_id', userId)
       .maybeSingle()
-
-    console.log('OPERATOR DEBUG', {
-      userId,
-      operator,
-      operatorError,
-    })
-
 
     if (operatorError || !operator) {
       return NextResponse.redirect(new URL('/unauthorized', request.url))

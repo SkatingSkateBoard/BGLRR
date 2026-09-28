@@ -1,8 +1,7 @@
 "use client";
 
 //style
-import "@/app/styles/loginPage.css";
-
+import "@/styles/loginPage.css";
 
 //actions
 import { login } from "@/app/actions/auth";

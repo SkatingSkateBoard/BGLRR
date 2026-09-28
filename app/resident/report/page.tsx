@@ -1,7 +1,8 @@
 "use client";
 
-import "@/app/styles/dashboard.css";
+import "@/styles/dashboard.css";
 import React, { useState, useEffect, useRef } from "react";
+import {createEmergencyRequest} from "./actions";
 
 // Define TypeScript structure for our emergency categories
 interface EmergencyCategory {
@@ -101,10 +102,15 @@ export default function EmergencyReportPage() {
     },
   ];
 
-  const handleCategoryClick = (category: string) => {
-    console.log("Selected category:", category);
-    // Wire up your routing logic here (e.g., router.push(`/report?type=${category}`))
-  };
+  const handleCategoryClick = async (category: string) => {
+  try {
+    await createEmergencyRequest(category);
+
+    console.log("Emergency request created:", category);
+  } catch (error) {
+    console.error("Failed to create emergency request:", error);
+  }
+};
 
   return (
     <>
