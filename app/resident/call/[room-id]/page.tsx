@@ -27,14 +27,14 @@ export default function CallPage({ params }: PageProps) {
 
   if (!token) {
     return (
-      <div className="flex h-screen items-center justify-center bg-zinc-950 text-white">
-        <p className="text-red-500 font-semibold">Error: No access token provided.</p>
+      <div>
+        <p>Error: No access token provided.</p>
       </div>
     );
   }
 
   return (
-    <main className="flex h-screen w-screen flex-col bg-zinc-950 text-white">
+    <main>
       <LiveKitRoom
         video={false}
         audio={true}
@@ -42,7 +42,6 @@ export default function CallPage({ params }: PageProps) {
         serverUrl={serverUrl}
         data-lk-theme="default"
         connectOptions={{ autoSubscribe: true }}
-        className="flex flex-1 flex-col items-center justify-center p-6"
       >
 
         <CallInterface roomId={roomId} />
@@ -53,6 +52,8 @@ export default function CallPage({ params }: PageProps) {
   );
 }
 
+
+//Call comp Resident
 function CallInterface({ roomId }: { roomId: string }) {
   const participants = useParticipants();
   
@@ -61,29 +62,18 @@ function CallInterface({ roomId }: { roomId: string }) {
   );
 
   return (
-    <div className="flex flex-col items-center gap-6 max-w-md text-center">
-      <div className="relative flex h-24 w-24 items-center justify-center">
-        <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${isOperatorPresent ? 'bg-green-500 animate-pulse' : 'bg-red-500 animate-ping'}`}></span>
-        <div className={`relative rounded-full h-16 w-16 flex items-center justify-center text-2xl font-bold ${isOperatorPresent ? 'bg-green-600' : 'bg-red-600'}`}>
-          
-        </div>
-      </div>
-
+    <div>
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">
+        <h1>
           {isOperatorPresent ? "Connected to Operator" : "Emergency Dispatched"}
         </h1>
        
-        <p className="text-xs font-mono text-zinc-600 mt-1">Line ID: {roomId}</p>
+        <p>Line ID: {roomId}</p>
         
-        <p className="text-sm text-zinc-400 mt-2">
-          {isOperatorPresent 
-            ? "An operator is online. Please speak clearly into your device." 
-            : "Line open. Holding for the next available dispatcher. Do not hang up."}
-        </p>
+        <p>{isOperatorPresent ? "An operator is online. Please speak clearly into your device." : "Line open. Waiting for an operator. Do not hang up."} </p>
       </div>
 
-      <div className="mt-4 w-full bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
+      <div>
         <AudioConference />
       </div>
     </div>

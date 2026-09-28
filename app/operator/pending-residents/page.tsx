@@ -68,24 +68,13 @@ export default function PendingResidentsPage() {
                 <p>No pending residents found.</p>
             ) : (
                 residents.map((resident) => (
-                    <div key={resident.id} style={{ border: "1px solid #ccc", padding: "12px", margin: "8px 0", borderRadius: "6px" }}>
+                    <div key={resident.id}>
                         <h3>Resident: {resident.first_name} {resident.last_name}</h3>
                         <p>Email: {resident.email}</p>
                         
                         <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-                            {/* 🛠️ Wired up functions passing down the resident id */}
-                            <button 
-                                onClick={() => handleStatusChange(resident.id, "approve")}
-                                style={{ background: "green", color: "white", padding: "6px 12px", border: "none", borderRadius: "4px", cursor: "pointer" }}
-                            >
-                                Approve
-                            </button>
-                            <button 
-                                onClick={() => handleStatusChange(resident.id, "reject")}
-                                style={{ background: "red", color: "white", padding: "6px 12px", border: "none", borderRadius: "4px", cursor: "pointer" }}
-                            >
-                                Reject
-                            </button>
+                            <button onClick={() => handleStatusChange(resident.id, "approve")}>Approve</button>
+                            <button onClick={() => handleStatusChange(resident.id, "reject")}>Reject</button>
                         </div>
                     </div>
                 ))

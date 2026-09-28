@@ -11,7 +11,6 @@ import { login } from "@/app/actions/auth";
 import { useState } from "react";
 import type {SubmitEvent} from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
