@@ -5,9 +5,64 @@ import type { FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import "../../styles/signUp.css";
 
-type Sex = "MALE" | "FEMALE";
+type Sex = "MALE" | "FEMALE" | "";
+
+type GeneralInfo = {
+  //General Info 
+  email: string;
+  password: string;
+  confirmPassword: string;
+  first_name: string;
+  middle_name: string;
+  last_name: string;
+  suffix: string;
+  phone: string;
+  age: number | "";
+  sex: Sex;
+}
+
+type AddressInfo = {
+  has_permanent_address: boolean,
+  proof_of_accomodation: File | "",
+  current_address: string; 
+  reason: string;
+}
+
+type MedicalInfo = {
+  has_history: boolean, 
+  medical_description: string,
+  emergency_person: string,
+  emergency_contact_number: string,
+}
+
+type UserFormValues = GeneralInfo & AddressInfo & MedicalInfo;
+
+const initialFormValues: UserFormValues = {
+  // General 
+  email: "",
+  password: "",
+  confirmPassword: "",
+  first_name: "",
+  middle_name: "",
+  last_name: "",
+  suffix: "",
+  phone: "",
+  age: "",
+  sex: "",
+
+  // Address 
+  has_permanent_address: false,
+  proof_of_accomodation: "",
+  current_address: "",
+  reason: "",
+
+  // Medical 
+  has_history: false,
+  medical_description: "",
+  emergency_person: "",
+  emergency_contact_number: "",
+};
 
 export default function SignupPage() {
   const router = useRouter();
@@ -106,7 +161,7 @@ export default function SignupPage() {
 
   return (
     <main className="signup-page">
-      <h1>Register your resident account</h1>
+      <h1>Register</h1>
         <form onSubmit={handleSubmit}>
           <fieldset>
             <legend>General Information</legend>
