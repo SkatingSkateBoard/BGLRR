@@ -1,7 +1,7 @@
  import Link from "next/link";
  
- export default function GeneralInformation {
-    return (
+ export default function GeneralInformation() {
+    return (    
         <>
             <form onSubmit={handleSubmit}>
             <fieldset>
