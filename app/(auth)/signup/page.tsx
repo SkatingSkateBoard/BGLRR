@@ -5,7 +5,7 @@ import type { FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import "../../styles/signUp.css";
+import "@/styles/signUp.css";
 
 type Sex = "MALE" | "FEMALE";
 

@@ -76,7 +76,8 @@ export async function createEmergencyRequest(category: string) {
   }
 
   const at = new AccessToken(apiKey, apiSecret, { 
-    identity: participantName 
+    identity: participantName,
+    ttl: "1h" //time before token is expired  
   });
 
   at.addGrant({ 
