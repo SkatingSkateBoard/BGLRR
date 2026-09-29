@@ -40,7 +40,7 @@ export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
   //public paths
-  const publicPaths = ['/resident/login', '/unauthorized']
+  const publicPaths = ['/resident/login', '/operator/login', '/unauthorized']
 
   if (publicPaths.includes(pathname)) {
     return response;
@@ -60,7 +60,7 @@ export async function proxy(request: NextRequest) {
     if (role === 'admin') return NextResponse.redirect(new URL('/admin/create', request.url));
   } 
 
-  
+
   const currentPath = ROLES.find(role => pathname.startsWith(`/${role}`));
   if (currentPath) {
     const userRole = claims?.user_metadata?.role;

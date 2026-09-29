@@ -10,7 +10,7 @@ export async function logout() {
 
   redirect("/resident/login");
 }
-
+//resident
 export async function login(email: string, password: string) {
   const supabase = await createClient()
 
@@ -34,3 +34,8 @@ export async function login(email: string, password: string) {
   return { success: true }
 }
 
+//operator todo
+
+export async function operatorLogin(identifier: string, password: string) {
+
+}
