@@ -46,64 +46,30 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
-
-  const role = claims?.user_metadata?.role
-  //DEF
-  if (pathname === '/' && role === 'resident') {
-    return NextResponse.redirect(new URL('/resident/dashboard', request.url));
-  }
-
-  if (pathname === '/' && role === 'operator') {
-    return NextResponse.redirect(new URL('/operator/dashboard', request.url));
-  }
-  //tmp
-  if (pathname === '/' && role === 'admin') {
-    return NextResponse.redirect(new URL('/admin/create', request.url));
-  }
-
-
-  //LOSE TOKEN
-  if (error || !userId || (!role && pathname == '/')) {
+  if (error || !userId) {
     return NextResponse.redirect(new URL('/resident/login', request.url))
   }
 
-  //STRICT ROUTES 
-  if (pathname.startsWith('/admin')) {
-    const role = claims.user_metadata?.role
+  const role = claims?.user_metadata?.role
+  const ROLES = ["resident", "operator", "admin"]
 
-    if (role !== 'admin') {
-      return NextResponse.redirect(new URL('/unauthorized', request.url))
-    }
-  }
+  //default paths based on role
+  if (pathname === '/') {
+    if (role === 'resident') return NextResponse.redirect(new URL('/resident/dashboard', request.url));
+    if (role === 'operator') return NextResponse.redirect(new URL('/operator/dashboard', request.url));
+    if (role === 'admin') return NextResponse.redirect(new URL('/admin/create', request.url));
+  } 
+
   
-  if (pathname.startsWith('/resident')) {
-    
-    const { data: resident, error: residentError } = await supabase
-      .from('tbl_resident')
-      .select('id')
-      .eq('user_id', userId)
-      .maybeSingle()
-
-      
-
-    if (residentError || !resident) {
-      return NextResponse.redirect(new URL('/unauthorized', request.url))
+  const currentPath = ROLES.find(role => pathname.startsWith(`/${role}`));
+  if (currentPath) {
+    const userRole = claims?.user_metadata?.role;
+    if (userRole !== currentPath) {
+      return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
   }
 
-  if (pathname.startsWith('/operator')) {
-    const { data: operator, error: operatorError } = await supabase
-      .from('tbl_operator')
-      .select('id')
-      .eq('user_id', userId)
-      .maybeSingle()
-
-    if (operatorError || !operator) {
-      return NextResponse.redirect(new URL('/unauthorized', request.url))
-    }
-  }
-
-  return response
+  return response;
 }
 
 export const config = {
