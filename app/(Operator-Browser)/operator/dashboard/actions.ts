@@ -16,7 +16,7 @@ export async function acceptEmergencyRequest(requestId: number) {
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) throw new Error("Operator is not authenticated.");
   //fetch operator
-  const {data: operatorData, error: operatorError} = await supabase.from("tbl_operator").select("id, user_id").eq("user_id", user.id).single();
+  const {data: operatorData, error: operatorError} = await supabase.from("tbl_operator").select("id, user_id, username").eq("user_id", user.id ).single();
   
   if (operatorError) throw new Error("Failed to get the following operator.");
   
@@ -28,7 +28,7 @@ export async function acceptEmergencyRequest(requestId: number) {
     throw new Error("This emergency request has already been claimed by another operator.");
   }
 
-  
+
   if (updateError) throw new Error("Failed to claim emergency request.");
 
 
@@ -38,7 +38,7 @@ export async function acceptEmergencyRequest(requestId: number) {
   const apiKey = process.env.LIVEKIT_API_KEY;
   const apiSecret = process.env.LIVEKIT_API_SECRET;
 
-  if (!apiKey || !apiSecret) {
+   if (!apiKey || !apiSecret) {
     throw new Error("LiveKit configuration is missing on the server.");
   }
 

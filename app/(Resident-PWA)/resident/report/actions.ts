@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
-import { AccessToken } from "livekit-server-sdk"; // Added missing import
+import { AccessToken, LiveKitAPI } from "livekit-server-sdk"; // Added missing import
 
 type EmergencyData = {
   id: number; 
@@ -70,9 +70,22 @@ export async function createEmergencyRequest(category: string) {
 
   const apiKey = process.env.LIVEKIT_API_KEY;
   const apiSecret = process.env.LIVEKIT_API_SECRET;
+  const lkUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL;
 
-  if (!apiKey || !apiSecret) {
+  if (!apiKey || !apiSecret || !lkUrl) {
     throw new Error("LiveKit environment variables are missing on the server.");
+  }
+
+  const api = new LiveKitAPI();
+
+  try {
+     await api.room.createRoom({
+      name: roomName,
+      emptyTimeout: 20 * 60, //20 min,
+      maxParticipants: 2  // 2 only
+    })
+  } catch (err) {
+    console.log("Room already created.");
   }
 
   const at = new AccessToken(apiKey, apiSecret, { 
