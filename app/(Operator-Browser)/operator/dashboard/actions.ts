@@ -84,7 +84,7 @@ export async function acceptEmergencyRequest(requestId: number) {
     console.error("Operator Accept Action Fatal Crash:", globalError);
     return {
       success: false,
-      error: `🚨 OPERATOR SERVER CRASH: ${globalError?.message || "Unknown error context."}`
+      error: `Server Crash: ${globalError?.message || "Unknown error context."}`
     };
   }
 }

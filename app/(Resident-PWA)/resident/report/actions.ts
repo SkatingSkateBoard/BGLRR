@@ -131,7 +131,7 @@ export async function createEmergencyRequest(category: string) {
     console.error("Caught a fatal Server Action exception:", globalError);
     return {
       success: false,
-      error: `🚨 SERVER CRASH CAUGHT: ${globalError?.message || "Unknown error boundary hit."}`
+      error: `Server Crash: ${globalError?.message || "Unknown error boundary hit."}`
     };
   }
 }
