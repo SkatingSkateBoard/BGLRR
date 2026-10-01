@@ -281,12 +281,12 @@ export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ su
                     <DropdownField
                       id="haveReason" name="haveReason" placeholder="Reason?" className="flex-1"
                       options={["Rental", "Work", "Others"]}
-                      value={["Rental", "Work"].includes(formData.reason || "") ? formData.reason : (formData.reason ? "Others" : "")}
+                      value={["RENTAL", "WORK"].includes(formData.reason || "") ? formData.reason : (formData.reason ? "OTHERS" : "")}
                       onChange={(v) => updateForm({ reason: v === "Others" ? "OTHERS" : v })}
                       error={errors.reason}
                     />
 
-                    {(!["Rental", "Work"].includes(formData.reason || "") && formData.reason !== "") && (
+                    {(!["RENTAL", "WORK"].includes(formData.reason || "") && formData.reason !== "") && (
                       <InputField id="otherReason" name="otherReason" placeholder="Please specify" className="w-full"
                         value={formData.reason === "OTHERS" ? "" : formData.reason || ""} 
                         onChange={(v) => updateForm({ reason: v })} error={errors.reason}  />
