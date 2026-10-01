@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
-import { AccessToken, LiveKitAPI } from "livekit-server-sdk"; // Added missing import
+import { AccessToken } from "livekit-server-sdk"; // Added missing import
 
 type EmergencyData = {
   id: number; 
@@ -76,25 +76,32 @@ export async function createEmergencyRequest(category: string) {
     throw new Error("LiveKit environment variables are missing on the server.");
   }
 
-  const api = new LiveKitAPI({
-    host: lkUrl,
-    apiKey: apiKey,
-    secret: apiSecret
-  });
-
   try {
-     await api.room.createRoom({
-      name: roomName,
-      emptyTimeout: 20 * 60, //20 min,
-      maxParticipants: 2  // 2 only
-    })
+    const httpLkUrl = lkUrl.replace(/^ws/, "http"); 
+    
+    const adminAt = new AccessToken(apiKey, apiSecret, { identity: "room-creator-admin" });
+    adminAt.addGrant({ roomCreate: true });
+    const adminToken = await adminAt.toJwt();
+
+    await fetch(`${httpLkUrl}/twirp/livekit.RoomService/CreateRoom`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({
+        name: roomName,
+        empty_timeout: 1200, 
+        max_participants: 2
+      }),
+    });
   } catch (err) {
-    console.log("Room already created.");
+    console.log("Room already created or handled by LiveKit.");
   }
 
   const at = new AccessToken(apiKey, apiSecret, { 
     identity: participantName,
-    ttl: "1h" //time before token is expired  
+    ttl: "1h" 
   });
 
   at.addGrant({ 
