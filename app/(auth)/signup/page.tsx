@@ -1,192 +1,53 @@
-"use client";
+'use client';
+import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { MyCarousel } from '@/components/residentComps/Carousel';
 
-import { useState } from "react";
-import type { FormEvent } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
-import "@/styles/signUp.css";
+export default function RegisterPage() {
+    const router = useRouter();
+    const [bgHeight, setBgHeight] = useState<number>();
 
-type Sex = "MALE" | "FEMALE";
+    useEffect(() => {
+        const measure = () => setBgHeight(screen.height)
+        measure()
+        const onOrient = () => setTimeout(measure, 300)
+        window.addEventListener('orientationchange', onOrient)
+        return () => window.removeEventListener('orientationchange', onOrient)
+    }, [])
 
-export default function SignupPage() {
-  const router = useRouter();
-  const supabase = createClient();
-  //FORM DATA FOR AUTH.USER
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-
-
-  //Form data for tbl_resident
-  const [firstName, setFirstName] = useState("");
-  const [middleName, setMiddleName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [suffix, setSuffix] = useState("");
-  const [phone, setPhone] = useState("");
-  const [age, setAge] = useState<number | "">("");
-  const [sex, setSex] = useState<Sex | "">("");
-  
-
-  //Logic Handlers
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    setError("");
-    setMessage("");
-
-    //error handlers 
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
+    const handleBack = () => {
+        router.push('/login')
     }
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
-      return;
-    }
-
-    if (age === "") {
-      setError("Please enter your age.");
-      return;
-    }
-
-    if (sex === "") {
-      setError("Please select your sex.");
-      return;
-    }
-
-    setLoading(true);
-    // Attempts to sign up user with Supabase
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          role: "resident",
-
-          //resident data 
-          first_name: firstName,
-          middle_name: middleName,
-          last_name: lastName,
-          suffix: suffix,
-          phone: phone,
-          age: age,
-          gender: sex, 
-
-        }
-      }
-    });
-
-    if (error) {
-      setError(error.message);
-        console.log('Supabase error:', error);
-  console.log('Message:', error.message);
-  console.log('Code:', error.code);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(false);
-
-    if (data.user && !data.session) {
-      sessionStorage.setItem("signupEmail", email);
-      sessionStorage.setItem("otpSource", "signup");
-      router.push("/otp");
-      return;
-    }
-
-    router.push("/");
-    router.refresh();
-  }
-
-  return (
-    <main className="signup-page">
-      <h1>Register your resident account</h1>
-        <form onSubmit={handleSubmit}>
-          <fieldset>
-            <legend>General Information</legend>
-              
-              <div className="form-row">
-                <label htmlFor="first-name">First Name</label>
-                <input type="text" id="first-name" name="first_name" required value={firstName || ""} onChange={(e) => setFirstName(e.target.value)}/>
-              </div>
-
-              <div className="form-row">
-                <label htmlFor="middle-name">Middle Name</label>
-                <input type="text" id="middle-name" name="middle_name" value={middleName || ""} onChange={(e) => setMiddleName(e.target.value)}/>
-              </div>
-
-              <div className="form-row">
-                <label htmlFor="last-name">Last Name</label>
-                <input type="text" id="last-name" name="last_name" required value={lastName || ""} onChange={(e) => setLastName(e.target.value)}/>
-              </div>
-
-              <div className="form-row">
-                 <label htmlFor="suffix">Suffix</label>
-                    <select id="suffix" name="suffix" value={suffix || ""} onChange={(e) => setSuffix(e.target.value)}>
-                      <option value="">Select a suffix</option>
-                      <option value="Jr.">Jr.</option>
-                      <option value="Sr.">Sr.</option>
-                      <option value="II">II</option>
-                      <option value="III">III</option>
-                      <option value="IV">IV</option>
-                      <option value="V">V</option>
-                    </select>
-              </div>
-
-              <div className="form-row">
-                <label htmlFor="email">Email Address</label>
-                <input type="email" id="email" name="email" autoComplete="email" required value={email || ""} onChange={(e) => setEmail(e.target.value)}/>
-              </div>
-
-              <div className="form-row">
-                <label htmlFor="phone">Phone Number</label>
-                <input type="tel" id="phone" name="phone" autoComplete="tel" value={phone || ""} onChange={(e) => setPhone(e.target.value)}/>
-              </div>
-
-              <div className="form-row">
-                <label htmlFor="age">Age</label>
-                <input type="number" id="age" name="age" autoComplete="age" required value={age} onChange={(e) =>  {const value = e.target.value; setAge(value === "" ? "" : Number(value))}}/>
-              </div>
-
-              <div className="form-row">
-                 <label htmlFor="sex">Sex</label>
-                  <select id="sex" name="sex" required value={sex || ""} onChange={(e) => setSex(e.target.value as Sex)}>
-                    <option value="">Select sex</option>
-                    <option value="MALE">Male</option>
-                    <option value="FEMALE">Female</option>
-                  </select>
-              </div>
-
-              <div className="form-row">
-                <label htmlFor="password">Password</label>
-                <input type="password" id="password" name="password" autoComplete="current-password" required value={password || ""} onChange={(e) => setPassword(e.target.value)}/>
-              </div>
-
-              <div className="form-row">
-                <label htmlFor="confirm-password">Confirm Password</label>
-                <input type="password" id="confirm-password" name="confirm_password" autoComplete="current-password" required value={confirmPassword || ""} onChange={(e) => setConfirmPassword(e.target.value)}/>
-              </div>
-
-              <button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-200">
-                {loading ? "Creating account..." : "Create Account"}
-              </button>
-
-              {error && <p className="error">{error}</p>}
-              {message && <p className="message">{message}</p>}
-          </fieldset>
-        </form>
-        
-
-        <h1>Already have an account?</h1>
-        <Link href="/resident/login" className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition duration-200">
-          Sign in
-        </Link>
-    </main> 
-  );
+    return (
+        <div className="fixed top-0 left-0 h-lvh w-screen bg-white overflow-hidden">
+            <div
+                className="absolute left-0 top-0 h-lvh w-full"
+                style={{ height: bgHeight }}>
+                <div className="absolute inset-0 bg-gradient-to-b from-[rgba(35,35,184,0.90)] to-white]" />
+                <div className="absolute inset-0 bg-transparent
+                bg-[radial-gradient(rgba(255,255,255,0.15)_2px,transparent_1px)] 
+                [background-size:24px_24px]"/>
+            </div>
+            <button type="button" className="cursor-pointer z-90 absolute top-0 left-0 p-7 bg-white/0"
+                onClick={handleBack}>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.8} stroke="white" className="size-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                </svg>
+            </button>
+            {/* <div className="absolute inset-x-0 top-17 z-90 bg-black/0 p-1 pl-4 md:pl-0 md:inset-x-auto md:left-1/2 md:top-12 md:w-140 md:-translate-x-1/2">
+                <p className="text-white text-[35px] md:text-[30px] font-bold text-left">
+                    Register your <br/> Resident Account
+                </p>
+            </div> */}
+            <div className="absolute inset-0 flex items-end md:justify-center">
+                <div className="z-100 relative w-full md:w-140 flex bottom-0 rounded-t-[4vh] bg-white p-5 py-7 justify-center h-11/14 md:h-8/10">
+                    <p className="absolute bottom-full mb-3 left-0 ml-5 text-white text-[35px] md:text-[30px] font-bold text-left">
+                        Register your <br /> Resident Account
+                    </p>
+                    <MyCarousel />
+                </div>
+            </div>
+        </div>
+    )
 }

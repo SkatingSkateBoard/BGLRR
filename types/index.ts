@@ -28,7 +28,8 @@ type MedicalInfo = {
   emergency_contact_number: string,
 }
 
-export type UserFormValues = GeneralInfo & AddressInfo & MedicalInfo;
+
+export type UserFormValues = GeneralInfo & AddressInfo & MedicalInfo & { terms: boolean };;
 
 export const initialFormValues: UserFormValues = {
   // General Info
@@ -54,4 +55,7 @@ export const initialFormValues: UserFormValues = {
   medical_description: "",
   emergency_person: "",
   emergency_contact_number: "",
+
+  //TOS
+  terms: false,
 };
