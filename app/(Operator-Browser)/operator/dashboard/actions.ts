@@ -33,7 +33,7 @@ export async function acceptEmergencyRequest(requestId: number) {
 
 
   const roomName = `emergency-${requestId}`;
-  const participantName = `${operator.username}`;
+  const participantName = `Operator-${operator.username}`;
 
   const apiKey = process.env.LIVEKIT_API_KEY;
   const apiSecret = process.env.LIVEKIT_API_SECRET;

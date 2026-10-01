@@ -76,7 +76,11 @@ export async function createEmergencyRequest(category: string) {
     throw new Error("LiveKit environment variables are missing on the server.");
   }
 
-  const api = new LiveKitAPI();
+  const api = new LiveKitAPI({
+    host: lkUrl,
+    apiKey: apiKey,
+    secret: apiSecret
+  });
 
   try {
      await api.room.createRoom({
