@@ -96,13 +96,12 @@ export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ su
     [updateButtons]
   )
 
-   const handleSubmit = async() => {
+  const handleSubmit = async () => {
     // 1. Sequentially run our non-redundant step validation tracks
     const isStep1Valid = validateStep(1);
     const isStep2Valid = validateStep(2);
     const isStep3Valid = validateStep(3);
     const isStep4Valid = validateStep(4);
-
 
     if (!isStep1Valid) {
       setShowError(true);
@@ -111,21 +110,18 @@ export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ su
       return;
     }
 
-   
     if (!isStep2Valid) {
       setShowError(true);
       outerApi?.scrollTo(1);
       return;
     }
 
-    
     if (!isStep3Valid) {
       setShowError(true);
       outerApi?.scrollTo(2);
       return;
     }
 
-    
     if (!isStep4Valid) {
       setShowError(true);
       return;
@@ -135,23 +131,23 @@ export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ su
     console.log("Submitting context form data directly to database table:", formData);
 
     try {
-      const result = await signUp(formData)
+      const result = await signUp(formData);
 
       if (!result.success) {
-        alert(result.error)
-        return
+        alert(result.error);
+        return;
       }
 
-      sessionStorage.setItem("signupEmail", formData.email || "")
-      sessionStorage.setItem("otpSource", "signup")
+      sessionStorage.setItem("signupEmail", formData.email || "");
+      sessionStorage.setItem("otpSource", "signup");
 
-      router.push("/otp")
+      router.push("/otp");
       
     } catch (err) {
-      console.error("Failed to process resident submission context data:", err)
+      console.error("Failed to process resident submission context data:", err);
     }
   };
-
+  
   const handleNext = () => {
     if (!outerApi) return
     setShowError(false)
