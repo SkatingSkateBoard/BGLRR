@@ -2,6 +2,8 @@
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { MyCarousel } from '@/components/residentComps/Carousel';
+import {FormProvider } from '@/components/context/RegistrationContext';
+import {signUpResident} from './actions';
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -16,7 +18,7 @@ export default function RegisterPage() {
     }, [])
 
     const handleBack = () => {
-        router.push('/login')
+        router.push('/resident/login');
     }
 
     return (
@@ -45,7 +47,9 @@ export default function RegisterPage() {
                     <p className="absolute bottom-full mb-3 left-0 ml-5 text-white text-[35px] md:text-[30px] font-bold text-left">
                         Register your <br /> Resident Account
                     </p>
-                    <MyCarousel />
+                    <FormProvider>
+                        <MyCarousel signUp={signUpResident} />
+                    </FormProvider>
                 </div>
             </div>
         </div>

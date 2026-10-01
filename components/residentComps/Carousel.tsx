@@ -16,6 +16,9 @@ import { ScrollableBox } from "@/components/ui/ScrollableBox"
 import { ErrorBox } from "@/components/ui/ErrorInfo"
 import { useRegistrationForm } from "@/components/context/RegistrationContext"
 
+import {useRouter} from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
+
 const inputClass =
   "text-[12px] h-13 border-1 min-w-0 pl-3 border-gray-150 rounded-[2vw] md:rounded-md focus:outline-hidden"
 const pClass = "font-bold text-[22px] mb-5 mt-4"
@@ -32,10 +35,11 @@ function InnerCarousel({ index, register, children }: {
     </Carousel>
   )
 }
-
-export function MyCarousel() {
- 
+export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ success: boolean; error?: string }> }) {
   const { formData, errors, updateForm, validateStep } = useRegistrationForm()
+
+  const router = useRouter();
+  const supabase = createClient();
 
   const [outerApi, setOuterApi] = React.useState<CarouselApi>()
   const innerApis = React.useRef<Map<number, NonNullable<CarouselApi>>>(new Map())
@@ -92,29 +96,66 @@ export function MyCarousel() {
     [updateButtons]
   )
 
-  const handleSubmit = () => {
-  
-    if (!validateStep(4)) {
-      setShowError(true)
-      return
+   const handleSubmit = async() => {
+    // 1. Sequentially run our non-redundant step validation tracks
+    const isStep1Valid = validateStep(1);
+    const isStep2Valid = validateStep(2);
+    const isStep3Valid = validateStep(3);
+    const isStep4Valid = validateStep(4);
+
+
+    if (!isStep1Valid) {
+      setShowError(true);
+      outerApi?.scrollTo(0); // Snaps back to General Information slide
+      innerApis.current.get(0)?.scrollTo(0); // Focuses page 1 inputs
+      return;
     }
-    setShowError(false)
-    console.log("Submitting context form data directly to database table:", formData)
-  }
+
+   
+    if (!isStep2Valid) {
+      setShowError(true);
+      outerApi?.scrollTo(1);
+      return;
+    }
+
+    
+    if (!isStep3Valid) {
+      setShowError(true);
+      outerApi?.scrollTo(2);
+      return;
+    }
+
+    
+    if (!isStep4Valid) {
+      setShowError(true);
+      return;
+    }
+
+    setShowError(false);
+    console.log("Submitting context form data directly to database table:", formData);
+
+    try {
+      const result = await signUp(formData)
+
+      if (!result.success) {
+        alert(result.error)
+        return
+      }
+
+      sessionStorage.setItem("signupEmail", formData.email || "")
+      sessionStorage.setItem("otpSource", "signup")
+
+      router.push("/otp")
+      
+    } catch (err) {
+      console.error("Failed to process resident submission context data:", err)
+    }
+  };
 
   const handleNext = () => {
     if (!outerApi) return
-    
-
-    const currentStepIndex = outerApi.selectedScrollSnap() + 1
-    const isStepValid = validateStep(currentStepIndex)
-
-    if (!isStepValid) {
-      setShowError(true)
-      return
-    }
-
     setShowError(false)
+
     const inner = getInner()
     if (inner?.canScrollNext()) {
       inner.scrollNext()
@@ -145,8 +186,7 @@ export function MyCarousel() {
     const timer = setTimeout(() => setShowError(false), 4000)
     return () => clearTimeout(timer)
   }, [showError])
-
-return (
+  return (
     <div className="flex flex-col w-full mx-auto">
       {showError && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-md">
@@ -154,7 +194,6 @@ return (
         </div>
       )}
 
-      {/* Progress Bars */}
       <div className="flex flex-row justify-between w-full gap-3 px-5 h-2.5">
         <div className={`${handleProgressBar} ${currentOuter >= 0 ? "bg-[rgb(32,32,162)]" : "bg-[rgb(217,217,217)]"}`} />
         <div className={`${handleProgressBar} ${currentOuter >= 1 ? "bg-[rgb(32,32,162)]" : "bg-[rgb(217,217,217)]"}`} />
@@ -165,37 +204,34 @@ return (
       <Carousel setApi={setOuterApi} opts={{ watchDrag: false }}>
         <CarouselContent>
 
-          {/* STEP 1: General Information */}
           <CarouselItem>
             <p className={pClass}>General Information</p>
             <InnerCarousel index={0} register={register}>
 
-              {/* Step 1 - Page 1 */}
               <CarouselItem className="flex flex-col gap-2 w-full">
                 <div className="flex flex-row gap-2">
                   <InputField id="firstName" name="firstName" placeholder="First Name" className="flex-3"
-                    value={formData.first_name || ""} onChange={(v) => updateForm({ first_name: v })} error={errors.first_name} hideErrorText />
+                    value={formData.first_name || ""} onChange={(v) => updateForm({ first_name: v })} error={errors.first_name}  />
                   <InputField id="suffix" name="suffix" placeholder="Suffix" className="flex-1"
                     value={formData.suffix || ""} onChange={(v) => updateForm({ suffix: v })} />
                 </div>
                 <InputField id="middleName" name="middleName" placeholder="Middle Name" className="w-full"
                   value={formData.middle_name || ""} onChange={(v) => updateForm({ middle_name: v })} />
                 <InputField id="lastName" name="lastName" placeholder="Last Name" className="w-full"
-                  value={formData.last_name || ""} onChange={(v) => updateForm({ last_name: v })} error={errors.last_name} hideErrorText />
+                  value={formData.last_name || ""} onChange={(v) => updateForm({ last_name: v })} error={errors.last_name}  />
                 <InputField id="emailAddress" name="email" placeholder="Email Address" className="w-full"
-                  value={formData.email || ""} onChange={(v) => updateForm({ email: v })} error={errors.email} hideErrorText />
+                  value={formData.email || ""} onChange={(v) => updateForm({ email: v })} error={errors.email}  />
                 <InputField id="phoneNumber" name="phone" placeholder="Phone Number" className="w-full"
-                  value={formData.phone || ""} onChange={(v) => updateForm({ phone: v })} error={errors.phone} hideErrorText />
+                  value={formData.phone || ""} onChange={(v) => updateForm({ phone: v })} error={errors.phone}  />
               </CarouselItem>
 
-              {/* Step 1 - Page 2 */}
               <CarouselItem className="flex flex-col gap-2 w-full">
                 <div className="flex flex-row gap-2">
                   <InputField id="age" name="age" placeholder="Age" className="flex-2"
-                    value={formData.age.toString() ?? ""} onChange={(v) => updateForm({ age: v === "" ? "" : Number(v) })} error={errors.age} hideErrorText />
+                    value={formData.age?.toString() ?? ""} onChange={(v) => updateForm({ age: v === "" ? "" : Number(v) })} error={errors.age}  />
                   <DropdownField id="sex" name="sex" placeholder="Sex" className="flex-1"
                     options={["MALE", "FEMALE"]} value={formData.sex || ""}
-                    onChange={(v) => updateForm({ sex: v as "MALE" | "FEMALE" })} error={errors.sex} hideErrorText />
+                    onChange={(v) => updateForm({ sex: v as "MALE" | "FEMALE" })} error={errors.sex}  />
                 </div>
                 <InputField id="password" name="password" placeholder="Password" type="password" className="w-full"
                   value={formData.password || ""} onChange={(v) => updateForm({ password: v })} error={errors.password} />
@@ -206,7 +242,7 @@ return (
                   </p>
                 </div>
                 <InputField id="confirmpass" name="confirmpassword" placeholder="Confirm Password" type="password" className="w-full"
-                  value={formData.confirmPassword || ""} onChange={(v) => updateForm({ confirmPassword: v })} error={errors.confirmPassword} hideErrorText />
+                  value={formData.confirmPassword || ""} onChange={(v) => updateForm({ confirmPassword: v })} error={errors.confirmPassword}  />
               </CarouselItem>
 
             </InnerCarousel>
@@ -217,7 +253,6 @@ return (
             </div>
           </CarouselItem>
 
-          {/* STEP 2: Occupancy */}
           <CarouselItem>
             <p className={pClass}>Occupancy</p>
             <InnerCarousel index={1} register={register}>
@@ -235,7 +270,7 @@ return (
                 {formData.has_permanent_address === true && (
                   <>
                     <InputField id="permanentAddress" name="permanentAddress" placeholder="Permanent Address" className="w-full"
-                      value={formData.current_address || ""} onChange={(v) => updateForm({ current_address: v })} error={errors.current_address} hideErrorText />
+                      value={formData.current_address || ""} onChange={(v) => updateForm({ current_address: v })} error={errors.current_address}  />
                     <div className="flex flex-row gap-2 items-center">
                       <CircleQuestionMark size={20} className="text-gray-400 shrink-0" />
                       <p className="text-gray-400 text-[12px] italic">
@@ -251,17 +286,18 @@ return (
                       id="haveReason" name="haveReason" placeholder="Reason?" className="flex-1"
                       options={["Rental", "Work", "Others"]}
                       value={["Rental", "Work"].includes(formData.reason || "") ? formData.reason : (formData.reason ? "Others" : "")}
-                      onChange={(v) => updateForm({ reason: v === "Others" ? "" : v })}
+                      onChange={(v) => updateForm({ reason: v === "Others" ? "OTHERS" : v })}
                       error={errors.reason}
                     />
 
                     {(!["Rental", "Work"].includes(formData.reason || "") && formData.reason !== "") && (
                       <InputField id="otherReason" name="otherReason" placeholder="Please specify" className="w-full"
-                        value={formData.reason || ""} onChange={(v) => updateForm({ reason: v })} error={errors.reason} hideErrorText />
+                        value={formData.reason === "OTHERS" ? "" : formData.reason || ""} 
+                        onChange={(v) => updateForm({ reason: v })} error={errors.reason}  />
                     )}
 
                     <InputField id="temporaryAddress" name="temporaryAddress" placeholder="What is your temporary address?" className="w-full"
-                      value={formData.current_address || ""} onChange={(v) => updateForm({ current_address: v })} error={errors.current_address} hideErrorText />
+                      value={formData.current_address || ""} onChange={(v) => updateForm({ current_address: v })} error={errors.current_address}  />
                     <div className="flex flex-row gap-2 items-center">
                       <CircleQuestionMark size={20} className="text-gray-400 shrink-0" />
                       <p className="text-gray-400 text-[12px] italic">
@@ -273,8 +309,6 @@ return (
               </CarouselItem>
             </InnerCarousel>
           </CarouselItem>
-
-           {/* STEP 3: Medical Information */}
           <CarouselItem>
             <p className={pClass}>Medical Information</p>
             <InnerCarousel index={2} register={register}>
@@ -286,7 +320,7 @@ return (
                   value={formData.has_history ? "Yes" : "No"}
                   onChange={(v) => updateForm({ has_history: v === "Yes" })}
                   error={errors.has_history}
-                  hideErrorText
+                  
                 />
 
                 {formData.has_history === true && (
@@ -303,14 +337,13 @@ return (
                 )}
 
                 <InputField id="emergencyContactName" name="emergencyContactName" placeholder="Emergency Contact Person Name" className="w-full"
-                  value={formData.emergency_person || ""} onChange={(v) => updateForm({ emergency_person: v })} error={errors.emergency_person} hideErrorText />
+                  value={formData.emergency_person || ""} onChange={(v) => updateForm({ emergency_person: v })} error={errors.emergency_person} />
                 <InputField id="emergencyContactNumber" name="emergencyContactNumber" placeholder="Emergency Contact Person Number" className="w-full"
-                  value={formData.emergency_contact_number || ""} onChange={(v) => updateForm({ emergency_contact_number: v })} error={errors.emergency_contact_number} hideErrorText />
+                  value={formData.emergency_contact_number || ""} onChange={(v) => updateForm({ emergency_contact_number: v })} error={errors.emergency_contact_number}  />
               </CarouselItem>
             </InnerCarousel>
           </CarouselItem>
 
-          {/* STEP 4: Terms and Conditions */}
           <CarouselItem>
             <p className={pClass}>Terms and Conditions</p>
             <InnerCarousel index={3} register={register}>
@@ -361,7 +394,7 @@ return (
                   checked={!!formData.terms}
                   onChange={(v) => updateForm({ terms: !!v })}
                   error={errors.terms}
-                  hideErrorText
+                  
                 />
               </CarouselItem>
             </InnerCarousel>
@@ -370,12 +403,11 @@ return (
         </CarouselContent>
       </Carousel>
 
-      {/* Control Buttons */}
-      <div className="flex flex-col items-center gap-2 mt-1">
-        <Button className={`${buttonClass} static`} onClick={handleNext} disabled={!canNext && !isLastStep}>
+      <div className="flex flex-col items-center gap-2 mt-4">
+        <Button className={buttonClass} onClick={handleNext} disabled={!canNext && !isLastStep}>
           {isLastStep ? "Submit" : "Next"}
         </Button>
-        <Button className={`${buttonClass} static bg-gray-700`} onClick={handlePrev} disabled={!canPrev}>Back</Button>
+        <Button className={`${buttonClass} bg-gray-700`} onClick={handlePrev} disabled={!canPrev}>Back</Button>
       </div>
     </div>
   )

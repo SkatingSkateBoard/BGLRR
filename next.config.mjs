@@ -11,6 +11,7 @@ const withPWA = withPWAInit({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Your normal Next.js configuration rules go here (e.g., images, rewrites)
+    turbopack: {}, 
 };
 
 export default withPWA(nextConfig);
