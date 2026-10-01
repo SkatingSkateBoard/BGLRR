@@ -70,7 +70,6 @@ export default function EmergencyList({ onAcceptCall }: EmergencyListProps) {
         async (payload) => {
           console.log("Stream received update payload:", payload);
 
-          // --- FIX: HANDLE REMOVALS (UPDATES & DELETES) ---
           if (payload.eventType === "DELETE") {
             const targetId = payload.old?.id;
             if (targetId) {
@@ -83,21 +82,18 @@ export default function EmergencyList({ onAcceptCall }: EmergencyListProps) {
             const targetId = payload.new?.id;
             const updatedStatus = payload.new?.status;
 
-            // If it was changed to something else (e.g. ACCEPTED, RESOLVED), remove it from pending list
             if (updatedStatus && updatedStatus !== "PENDING") {
               setRequests((current) => current.filter((req) => req.id !== targetId));
             }
             return;
           }
 
-          // --- FIX: HANDLE INSERTS ---
+         
           if (payload.eventType === "INSERT") {
             const newRow = payload.new;
             if (!newRow || newRow.status !== "PENDING") return;
 
             try {
-              // WARNING: Ensure 'resident_id' matches the EXACT column name on tbl_emergency_req
-              // If your column is called 'user_id' or 'created_by', change newRow.resident_id below!
               const targetResidentId = newRow.resident_id; 
 
               if (!targetResidentId) {
@@ -160,11 +156,10 @@ export default function EmergencyList({ onAcceptCall }: EmergencyListProps) {
         const result = await onAcceptCall(requestId);
 
          if (!result.success) {
-          // Captures the message sent from actions.ts and alerts the user gracefully
           alert(`Could not claim request: ${result.error}`);
           return;
         }
-        
+
         if (result.success) {
           router.push(`/operator/call/${result.roomId}?token=${result.livekitToken}`);
         }

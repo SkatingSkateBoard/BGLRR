@@ -1,8 +1,8 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
-// NOTICE: Removed LiveKitAPI from imports since it uses broken Node.js streams on the edge
-import { AccessToken } from "livekit-server-sdk"; 
+
+import { AccessToken, LiveKitAPI } from "livekit-server-sdk"; 
 
 type EmergencyData = {
   id: number; 
@@ -76,35 +76,20 @@ export async function createEmergencyRequest(category: string) {
       return { success: false, error: "LiveKit environment variables are missing on the Cloudflare dashboard." };
     }
 
-    // 2. NATIVE REST API: Replaced LiveKitAPI with edge-friendly fetch to bypass Error #441
     try {
-      const httpLkUrl = lkUrl.replace(/^ws/, "http"); 
-      
-      const adminAt = new AccessToken(apiKey, apiSecret, { identity: "room-creator-admin" });
-      adminAt.addGrant({ roomCreate: true });
-      const adminToken = await adminAt.toJwt();
+    const livekitApi = new LiveKitAPI();
 
-      const lkResponse = await fetch(`${httpLkUrl}/twirp/livekit.RoomService/CreateRoom`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${adminToken}`,
-        },
-        body: JSON.stringify({
-          name: roomName,
-          empty_timeout: 1200, // 20 min in seconds
-          max_participants: 2  
-        }),
-      });
+    await livekitApi.room.createRoom({
+      name: roomName,
+      emptyTimeout: 1200,
+      maxParticipants: 2,
+    });
 
-      if (!lkResponse.ok) {
-        console.log("Room verification completed via LiveKit routing engine.");
-      }
-    } catch (err: any) {
-      console.log("Room already active or initialized elsewhere.");
-    }
+    console.log("LiveKit room created:", roomName);
+  } catch (error) {
+    console.log("Room may already exist or LiveKit API failed:", error);
+  }
 
-    // 3. JWT TOKEN GENERATION: Safe math engine calculations
     const at = new AccessToken(apiKey, apiSecret, { 
       identity: participantName,
       ttl: "1h" 
@@ -127,8 +112,7 @@ export async function createEmergencyRequest(category: string) {
     };
 
   } catch (globalError: any) {
-    // 4. CRITICAL RECOVERY: Returns the actual error string over the wire safely
-    console.error("Caught a fatal Server Action exception:", globalError);
+    console.error("Caught fatal Server Action exception:", globalError);
     return {
       success: false,
       error: `Server Crash: ${globalError?.message || "Unknown error boundary hit."}`

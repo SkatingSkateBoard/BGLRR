@@ -10,17 +10,14 @@ type Operator = {
 }
 
 export async function acceptEmergencyRequest(requestId: number) {
-  // 1. GLOBAL SAFETY NET: Catches any runtime error and prevents Error #441
   try {
     const supabase = await createClient();
 
-    // Fetch user context
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
       return { success: false, error: "Operator is not authenticated." };
     }
 
-    // Fetch operator profile mapping
     const { data: operatorData, error: operatorError } = await supabase
       .from("tbl_operator")
       .select("id, user_id, username")
@@ -33,7 +30,6 @@ export async function acceptEmergencyRequest(requestId: number) {
     
     const operator = operatorData as Operator;
 
-    // Mutate the row state via Supabase using your updated RLS policy
     const { data: updatedRows, error: updateError } = await supabase
       .from("tbl_emergency_req")
       .update({ status: "ACTIVE", operator_id: operator.id })
@@ -51,7 +47,7 @@ export async function acceptEmergencyRequest(requestId: number) {
 
     // Establish room identifiers
     const roomName = `emergency-${requestId}`;
-    const participantName = `Operator-${operator.username}`; // Matches call layout tracker
+    const participantName = `Operator-${operator.username}`; 
 
     const apiKey = process.env.LIVEKIT_API_KEY;
     const apiSecret = process.env.LIVEKIT_API_SECRET;
@@ -59,8 +55,6 @@ export async function acceptEmergencyRequest(requestId: number) {
     if (!apiKey || !apiSecret) {
       return { success: false, error: "LiveKit configuration credentials are missing on the Cloudflare dashboard." };
     }
-
-    // Generate operator session tokens securely using core crypto math rules
     const at = new AccessToken(apiKey, apiSecret, { identity: participantName });
     at.addGrant({ 
       roomJoin: true, 
@@ -71,7 +65,6 @@ export async function acceptEmergencyRequest(requestId: number) {
 
     const token = await at.toJwt();
 
-    // Return simple, perfectly serializable primitives for Next.js 16 over the network
     return {
       success: true,
       roomId: roomName,
@@ -80,7 +73,6 @@ export async function acceptEmergencyRequest(requestId: number) {
     };
 
   } catch (globalError: any) {
-    // 2. CRITICAL RECOVERY: Safely logs the error text to prevent server-side collapse
     console.error("Operator Accept Action Fatal Crash:", globalError);
     return {
       success: false,
