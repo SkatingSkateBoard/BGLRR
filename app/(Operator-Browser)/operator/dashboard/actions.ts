@@ -9,52 +9,82 @@ type Operator = {
   username: string;
 }
 
-
 export async function acceptEmergencyRequest(requestId: number) {
-  const supabase = await createClient();
+  // 1. GLOBAL SAFETY NET: Catches any runtime error and prevents Error #441
+  try {
+    const supabase = await createClient();
 
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) throw new Error("Operator is not authenticated.");
-  //fetch operator
-  const {data: operatorData, error: operatorError} = await supabase.from("tbl_operator").select("id, user_id, username").eq("user_id", user.id ).single();
-  
-  if (operatorError) throw new Error("Failed to get the following operator.");
-  
-  const operator = operatorData as Operator;
+    // Fetch user context
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return { success: false, error: "Operator is not authenticated." };
+    }
 
-  const { data: updatedRows, error: updateError } = await supabase.from("tbl_emergency_req").update({ status: "ACTIVE", operator_id: operator.id }).eq("id", requestId).eq("status", "PENDING").select();
+    // Fetch operator profile mapping
+    const { data: operatorData, error: operatorError } = await supabase
+      .from("tbl_operator")
+      .select("id, user_id, username")
+      .eq("user_id", user.id)
+      .single();
+    
+    if (operatorError || !operatorData) {
+      return { success: false, error: "Failed to locate operator record." };
+    }
+    
+    const operator = operatorData as Operator;
 
-  if (!updatedRows || updatedRows.length === 0) {
-    throw new Error("This emergency request has already been claimed by another operator.");
+    // Mutate the row state via Supabase using your updated RLS policy
+    const { data: updatedRows, error: updateError } = await supabase
+      .from("tbl_emergency_req")
+      .update({ status: "ACTIVE", operator_id: operator.id })
+      .eq("id", requestId)
+      .eq("status", "PENDING")
+      .select();
+
+    if (updateError) {
+      return { success: false, error: `Database transaction failed: ${updateError.message}` };
+    }
+
+    if (!updatedRows || updatedRows.length === 0) {
+      return { success: false, error: "This emergency request has already been claimed by another operator." };
+    }
+
+    // Establish room identifiers
+    const roomName = `emergency-${requestId}`;
+    const participantName = `Operator-${operator.username}`; // Matches call layout tracker
+
+    const apiKey = process.env.LIVEKIT_API_KEY;
+    const apiSecret = process.env.LIVEKIT_API_SECRET;
+
+    if (!apiKey || !apiSecret) {
+      return { success: false, error: "LiveKit configuration credentials are missing on the Cloudflare dashboard." };
+    }
+
+    // Generate operator session tokens securely using core crypto math rules
+    const at = new AccessToken(apiKey, apiSecret, { identity: participantName });
+    at.addGrant({ 
+      roomJoin: true, 
+      room: roomName, 
+      canPublish: true, 
+      canSubscribe: true 
+    });
+
+    const token = await at.toJwt();
+
+    // Return simple, perfectly serializable primitives for Next.js 16 over the network
+    return {
+      success: true,
+      roomId: roomName,
+      livekitToken: token,
+      error: null
+    };
+
+  } catch (globalError: any) {
+    // 2. CRITICAL RECOVERY: Safely logs the error text to prevent server-side collapse
+    console.error("Operator Accept Action Fatal Crash:", globalError);
+    return {
+      success: false,
+      error: `🚨 OPERATOR SERVER CRASH: ${globalError?.message || "Unknown error context."}`
+    };
   }
-
-
-  if (updateError) throw new Error("Failed to claim emergency request.");
-
-
-  const roomName = `emergency-${requestId}`;
-  const participantName = `Operator-${operator.username}`;
-
-  const apiKey = process.env.LIVEKIT_API_KEY;
-  const apiSecret = process.env.LIVEKIT_API_SECRET;
-
-   if (!apiKey || !apiSecret) {
-    throw new Error("LiveKit configuration is missing on the server.");
-  }
-
-  const at = new AccessToken(apiKey, apiSecret, { identity: participantName });
-  at.addGrant({ 
-    roomJoin: true, 
-    room: roomName, 
-    canPublish: true, 
-    canSubscribe: true 
-  });
-
-  const token = await at.toJwt();
-
-  return {
-    success: true,
-    roomId: roomName,
-    livekitToken: token,
-  };
 }

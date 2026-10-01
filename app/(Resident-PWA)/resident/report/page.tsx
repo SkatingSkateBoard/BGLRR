@@ -108,6 +108,10 @@ export default function EmergencyReportPage() {
   try {
     const result = await createEmergencyRequest(category);
 
+    if (!result.success) {
+      alert(`Failed to submit report: ${result.error}`);
+      return;
+    }
 
     if (result.success) {
       router.push(`/resident/call/${result.roomId}?token=${result.livekitToken}`);

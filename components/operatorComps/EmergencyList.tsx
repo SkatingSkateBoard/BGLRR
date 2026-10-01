@@ -24,8 +24,9 @@ type EmergencyListProps = {
     requestId: number
   ) => Promise<{
     success: boolean;
-    roomId: string;
-    livekitToken: string;
+    roomId?: string;
+    livekitToken?: string;
+    error: string | null;
   }>;
 };
 
@@ -157,6 +158,13 @@ export default function EmergencyList({ onAcceptCall }: EmergencyListProps) {
     startTransition(async () => {
       try {
         const result = await onAcceptCall(requestId);
+
+         if (!result.success) {
+          // Captures the message sent from actions.ts and alerts the user gracefully
+          alert(`Could not claim request: ${result.error}`);
+          return;
+        }
+        
         if (result.success) {
           router.push(`/operator/call/${result.roomId}?token=${result.livekitToken}`);
         }
