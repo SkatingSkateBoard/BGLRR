@@ -74,18 +74,12 @@ function CallInterface({ roomId }: { roomId: string }) {
     p.identity.startsWith("Operator-")
   );
 
-  // Track if an operator was connected, and automatically hang up if they leave
   useEffect(() => {
     if (isOperatorPresent) {
       setHadOperator(true);
-    } else if (hadOperator && !isOperatorPresent) {
-      // Operator was here but has now disconnected/terminated the feed
-      if (room) {
-        room.disconnect();
-      }
-      router.push("/"); // Redirect back to a safe home or landing state
     }
-  }, [isOperatorPresent, hadOperator, room, router]);
+
+  }, [isOperatorPresent]);
 
   const toggleMute = async () => {
     if (localParticipant) {
