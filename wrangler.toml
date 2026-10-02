@@ -1,20 +1,18 @@
-name = "Worker"
-main = "src/index.ts"
+name = "my-nextjs-app"
+main = ".open-next/worker.js" 
 compatibility_date = "2026-08-01"
+compatibility_flags = [ "nodejs_compat" ] 
 
-# Plain / Non-sensitive variables go here. Safe for Git.
 [vars]
-DEEPGRAM_API_KEY = "29c1df14b47dfa25b9c1395c62bd2ec04a2796ce"
-LIVEKIT_API_KEY = "APIDWXM3m43B3xs"
 LIVEKIT_URL = "wss://bglrr-47geizud.livekit.cloud"
 NEXT_PUBLIC_LIVEKIT_URL = "wss://bglrr-47geizud.livekit.cloud"
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_CklB_43keH-rHgBpYu5gmw_CPgmRLv5"
 NEXT_PUBLIC_SUPABASE_URL = "https://eijkkwpxlazgigqfjelf.supabase.co"
 
-# Tell Cloudflare these Secrets are required. 
-# It will NOT overwrite them on automated Git pushes.
 [secrets]
 required = [
+  "LIVEKIT_API_KEY",
+  "LIVEKIT_API_SECRET",
+  "DEEPGRAM_API_KEY",
   "SUPABASE_SECRET_KEY",
-  "LIVEKIT_API_SECRET"
+  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY" 
 ]
