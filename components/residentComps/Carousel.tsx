@@ -286,17 +286,17 @@ export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ su
                     options={["Rental", "Work", "Others"]}
                     value={formData.reason || ""}
                     onChange={(v) => {
-                      // Clear specify_reason if they switch away from "Others"
-                      updateForm({ reason: v, specify_reason: v === "Others" ? "" : undefined });
+                      updateForm({ reason: v, specify_reason: "" });
                     }}
                     error={errors.reason}
                   />
 
-                  {formData.reason === "Others" && (
+               
+                  {formData.reason && (
                     <InputField 
                       id="otherReason" 
                       name="otherReason" 
-                      placeholder="Please specify" 
+                      placeholder="Please specify details" 
                       className="w-full"
                       value={formData.specify_reason || ""} 
                       onChange={(v) => updateForm({ specify_reason: v })} 
