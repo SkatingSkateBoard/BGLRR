@@ -21,7 +21,7 @@ export async function signUpResident(formData: UserFormValues) {
           gender: formData.sex,
           has_permanent_address: formData.has_permanent_address,
           current_address: formData.current_address,
-          reason: formData.reason,
+          reason: formData.reason?.toUpperCase(),
           specify_reason: formData.specify_reason,
           has_history: formData.has_history,
           medical_description: formData.medical_description,
