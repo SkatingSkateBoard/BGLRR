@@ -1,4 +1,4 @@
-import styles from "./page.module.css";
+;
 import OperatorPlaceholder from "@/components/operatorComps/OperatorPlaceholder";
 
 export default function OperatorHistoryPage() {

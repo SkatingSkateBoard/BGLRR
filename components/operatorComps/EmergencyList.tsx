@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import styles from "./EmergencyList.module.css";
 
 type Resident = {
   id: number;
@@ -38,7 +39,7 @@ export default function EmergencyList({ onAcceptCall }: EmergencyListProps) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-    useEffect(() => {
+  useEffect(() => {
     async function fetchExistingRequests() {
       const { data, error } = await supabase
         .from("tbl_emergency_req")
@@ -56,7 +57,6 @@ export default function EmergencyList({ onAcceptCall }: EmergencyListProps) {
 
     fetchExistingRequests();
 
-    // Establish dynamic subscriber channel
     const channel = supabase
       .channel("operator-emergency-requests")
       .on(
@@ -87,7 +87,6 @@ export default function EmergencyList({ onAcceptCall }: EmergencyListProps) {
             return;
           }
 
-         
           if (payload.eventType === "INSERT") {
             const newRow = payload.new;
             if (!newRow || newRow.status !== "PENDING") return;
@@ -137,7 +136,6 @@ export default function EmergencyList({ onAcceptCall }: EmergencyListProps) {
     };
   }, []);
 
-
   function getFullName(resident: Resident) {
     return [
       resident.first_name,
@@ -154,7 +152,7 @@ export default function EmergencyList({ onAcceptCall }: EmergencyListProps) {
       try {
         const result = await onAcceptCall(requestId);
 
-         if (!result.success) {
+        if (!result.success) {
           alert(`Could not claim request: ${result.error}`);
           return;
         }
@@ -168,22 +166,64 @@ export default function EmergencyList({ onAcceptCall }: EmergencyListProps) {
     });
   }
 
-  if (loading) return <p>Loading emergency requests...</p>;
-  if (requests.length === 0) return <p>No pending emergency requests.</p>;
+  if (loading) return <p className={styles.note}>Loading emergency requests...</p>;
+  if (requests.length === 0) return <p className={styles.empty}>No pending emergency requests.</p>;
 
   return (
-    <section>
-      <h2>Active Requests</h2>
-      {requests.map((request) => (
-        <article key={request.id}>
-          <p>Category: {request.emerg_category}</p>
-          <p>ID: {request.id}</p>
-          <p>Caller: {getFullName(request.resident)}</p>
-          <button type="button" disabled={isPending} onClick={() => handleAccept(request.id)}>
-            {isPending ? "Connecting..." : "Accept Call"}
-          </button>
-        </article>
-      ))}
+    <section className={styles.container}>
+      <h2 className={styles.heading}>
+        Active Requests <span className={styles.count}>{requests.length}</span>
+      </h2>
+      
+      <div className={styles.stack}>
+        {requests.map((request) => {
+          // Generate initials safely for avatar component layout block
+          const firstLetter = request.resident?.first_name?.[0] || "";
+          const lastLetter = request.resident?.last_name?.[0] || "";
+          const initials = `${firstLetter}${lastLetter}`.toUpperCase();
+
+          return (
+            <article key={request.id} className={styles.card}>
+              {/* Dynamic initials avatar element */}
+              <div className={styles.avatar} aria-hidden="true">
+                {initials || "🚨"}
+              </div>
+
+              {/* Informational Body Layout Section */}
+              <div className={styles.info}>
+                <div className={styles.nameRow}>
+                  <h3 className={styles.name}>{getFullName(request.resident)}</h3>
+                  <span className={styles.pill}>Active</span>
+                </div>
+
+                {/* Structured Technical parameters replacing raw floating paragraph lines */}
+                <dl className={styles.details}>
+                  <div className={styles.detailRow}>
+                    <dt>Category</dt>
+                    <dd className={styles.categoryValue}>{request.emerg_category}</dd>
+                  </div>
+                  <div className={styles.detailRow}>
+                    <dt>Request ID</dt>
+                    <dd>#{request.id}</dd>
+                  </div>
+                </dl>
+              </div>
+
+              {/* Functional accepting action button trigger */}
+              <div className={styles.actions}>
+                <button 
+                  type="button" 
+                  disabled={isPending} 
+                  onClick={() => handleAccept(request.id)}
+                  className={`${styles.acceptButton} ${isPending ? styles.disabled : ""}`}
+                >
+                  {isPending ? "Connecting..." : "Accept Call"}
+                </button>
+              </div>
+            </article>
+          );
+        })}
+      </div>
     </section>
   );
 }
