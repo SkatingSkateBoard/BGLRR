@@ -1,8 +1,14 @@
-export default async function EmergencyRequestsPage() {
+import { acceptEmergencyRequest } from "./actions";
+import EmergencyList from "@/components/operatorComps/EmergencyList";
+import styles from "./page.module.css";
+
+export default function EmergencyRequestsPage() {
   return (
-    <main>
-      <h1>Emergency Requests</h1>
-      <p>List of emergency requests will be displayed here.</p>
+    <main className={styles.page}>
+      <section className={styles.panel}>
+        <h1>Emergency Requests</h1>
+        <EmergencyList onAcceptCall={acceptEmergencyRequest} />
+      </section>
     </main>
   )
 }

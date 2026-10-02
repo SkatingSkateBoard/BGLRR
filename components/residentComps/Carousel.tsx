@@ -277,31 +277,52 @@ export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ su
                 )}
 
                 {formData.has_permanent_address === false && (
-                  <>
-                    <DropdownField
-                      id="haveReason" name="haveReason" placeholder="Reason?" className="flex-1"
-                      options={["Rental", "Work", "Others"]}
-                      value={["RENTAL", "WORK"].includes(formData.reason || "") ? formData.reason : (formData.reason ? "OTHERS" : "")}
-                      onChange={(v) => updateForm({ reason: v === "Others" ? "OTHERS" : v })}
-                      error={errors.reason}
+                <>
+                  <DropdownField
+                    id="haveReason" 
+                    name="haveReason" 
+                    placeholder="Reason?" 
+                    className="flex-1"
+                    options={["Rental", "Work", "Others"]}
+                    value={formData.reason || ""}
+                    onChange={(v) => {
+                      // Clear specify_reason if they switch away from "Others"
+                      updateForm({ reason: v, specify_reason: v === "Others" ? "" : undefined });
+                    }}
+                    error={errors.reason}
+                  />
+
+                  {formData.reason === "Others" && (
+                    <InputField 
+                      id="otherReason" 
+                      name="otherReason" 
+                      placeholder="Please specify" 
+                      className="w-full"
+                      value={formData.specify_reason || ""} 
+                      onChange={(v) => updateForm({ specify_reason: v })} 
+                      error={errors.specify_reason || errors.reason}  
                     />
+                  )}
 
-                    {(!["RENTAL", "WORK"].includes(formData.reason || "") && formData.reason !== "") && (
-                      <InputField id="otherReason" name="otherReason" placeholder="Please specify" className="w-full"
-                        value={formData.reason === "OTHERS" ? "" : formData.reason || ""} 
-                        onChange={(v) => updateForm({ reason: v })} error={errors.reason}  />
-                    )}
+                  <InputField 
+                    id="temporaryAddress" 
+                    name="temporaryAddress" 
+                    placeholder="What is your temporary address?" 
+                    className="w-full"
+                    value={formData.current_address || ""} 
+                    onChange={(v) => updateForm({ current_address: v })} 
+                    error={errors.current_address}  
+                  />
+                  
+                  <div className="flex flex-row gap-2 items-center">
+                    <CircleQuestionMark size={20} className="text-gray-400 shrink-0" />
+                    <p className="text-gray-400 text-[12px] italic">
+                      Example: B17 L40 Tres Marias St. Greater Lagro, Quezon City
+                    </p>
+                  </div>
+                </>
+              )}
 
-                    <InputField id="temporaryAddress" name="temporaryAddress" placeholder="What is your temporary address?" className="w-full"
-                      value={formData.current_address || ""} onChange={(v) => updateForm({ current_address: v })} error={errors.current_address}  />
-                    <div className="flex flex-row gap-2 items-center">
-                      <CircleQuestionMark size={20} className="text-gray-400 shrink-0" />
-                      <p className="text-gray-400 text-[12px] italic">
-                        Example: B17 L40 Tres Marias St. Greater Lagro, Quezon City
-                      </p>
-                    </div>
-                  </>
-                )}
               </CarouselItem>
             </InnerCarousel>
           </CarouselItem>

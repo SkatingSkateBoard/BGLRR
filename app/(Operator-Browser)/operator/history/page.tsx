@@ -1,6 +1,5 @@
-import styles from "./page.module.css";
 import OperatorPlaceholder from "@/components/operatorComps/OperatorPlaceholder";
 
 export default function OperatorHistoryPage() {
-  return <OperatorPlaceholder title="Overview" />;
+  return <OperatorPlaceholder title="History" />;
 }

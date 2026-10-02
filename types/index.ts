@@ -19,6 +19,7 @@ type AddressInfo = {
   proof_of_accomodation: File | "",
   current_address: string; 
   reason: string;
+  specify_reason: string;
 }
 
 type MedicalInfo = {
@@ -49,6 +50,7 @@ export const initialFormValues: UserFormValues = {
   proof_of_accomodation: "",
   current_address: "",
   reason: "",
+  specify_reason: "",
 
   // Medical Info
   has_history: false,

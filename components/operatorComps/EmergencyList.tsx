@@ -30,7 +30,6 @@ type EmergencyListProps = {
   }>;
 };
 
-//  FIX 1: Initialize client outside component loop to preserve socket connection
 const supabase = createClient();
 
 export default function EmergencyList({ onAcceptCall }: EmergencyListProps) {

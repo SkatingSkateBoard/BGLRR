@@ -248,14 +248,6 @@ export default function OtpPage() {
             >
               {resending ? "Sending..." : "Send code again"}
             </button>
-
-            <button
-              type="button"
-              onClick={() => router.push("/login")}
-              className="mt-4 w-full cursor-pointer text-center text-sm font-semibold text-blue-800 hover:underline"
-            >
-              Back to login
-            </button>
           </form>
         </div>
       </div>

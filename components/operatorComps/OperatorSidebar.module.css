@@ -1,0 +1,180 @@
+.shell {
+  display: grid;
+  grid-template-columns: 224px minmax(0, 1fr);
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  background: #f1f1f1;
+}
+
+.sidebar {
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 1.5rem 0.85rem;
+  overflow-y: auto;
+  border-right: 1px solid #dedede;
+  background: #fff;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.1rem 0.15rem 1rem;
+  color: #111;
+  text-align: center;
+  text-decoration: none;
+}
+
+.logo {
+  width: 4.5rem;
+  height: 4.5rem;
+  object-fit: contain;
+}
+
+.brandName {
+  font-size: 0.72rem;
+  font-weight: 750;
+  line-height: 1.3;
+}
+
+.navigation {
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+  margin-top: 0.5rem;
+}
+
+.groupLabel {
+  margin: 0 0 0.35rem;
+  padding-inline: 0.1rem;
+  color: #777;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.itemList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 0.3rem;
+  color: #686868;
+  font-size: 0.78rem;
+  line-height: 1.2;
+  text-decoration: none;
+  transition: color 140ms ease, background-color 140ms ease;
+}
+
+.item:hover {
+  color: #2118ad;
+  background: #f1f0ff;
+}
+
+.item:focus-visible,
+.brand:focus-visible {
+  outline: 2px solid #3024c5;
+  outline-offset: 2px;
+}
+
+.active,
+.active:hover {
+  color: #fff;
+  background: #241bb5;
+}
+
+.icon {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  color: #7258b5;
+  stroke-width: 1.8;
+}
+
+.active .icon {
+  color: currentColor;
+}
+
+.content {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+@media (max-width: 680px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .sidebar {
+    gap: 0.55rem;
+    padding: 0.6rem 0.85rem 0.45rem;
+    overflow: hidden;
+    border-right: 0;
+    border-bottom: 1px solid #dedede;
+  }
+
+  .brand {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 0.55rem;
+    padding: 0;
+    text-align: left;
+  }
+
+  .logo {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .brandName {
+    font-size: 0.7rem;
+  }
+
+  .navigation {
+    flex-direction: row;
+    width: 100%;
+    min-width: 0;
+    gap: 0.5rem;
+    margin-top: 0;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  .group {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+  }
+
+  .groupLabel {
+    display: none;
+  }
+
+  .itemList {
+    flex-direction: row;
+    gap: 0.2rem;
+  }
+
+  .item {
+    min-height: 2rem;
+    gap: 0.35rem;
+    padding-inline: 0.55rem;
+    font-size: 0.72rem;
+    white-space: nowrap;
+  }
+}
