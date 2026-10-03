@@ -19,8 +19,21 @@ export default function CallPage({ params }: PageProps) {
   const unwrappedParams = use(params);
   const roomId = unwrappedParams.roomId;
   
-  const token = searchParams.get("token");
-  const serverUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || "ws://localhost:7880";
+  const rawToken = searchParams.get("token");
+  
+  const rawUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || "";
+  const serverUrl = rawUrl.trim() !== "" ? rawUrl : "ws://localhost:7880";
+
+  const [token, setToken] = useState<string | null>(null);
+  const [isReadyToConnect, setIsReadyToConnect] = useState(false);
+
+  useEffect(() => {
+    if (rawToken) {
+      setToken(rawToken);
+      const timer = setTimeout(() => setIsReadyToConnect(true), 200);
+      return () => clearTimeout(timer);
+    }
+  }, [rawToken]);
 
   if (!token) {
     return (
@@ -28,6 +41,14 @@ export default function CallPage({ params }: PageProps) {
         <div className="max-w-sm p-6 bg-zinc-900 border border-zinc-800 rounded-2xl">
           <p className="text-red-400 font-medium">Error: No access token provided.</p>
         </div>
+      </div>
+    );
+  }
+
+  if (!isReadyToConnect) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-zinc-950 text-zinc-500 font-mono text-sm tracking-wider">
+        ESTABLISHING SECURE ROUTE...
       </div>
     );
   }
@@ -40,6 +61,9 @@ export default function CallPage({ params }: PageProps) {
         token={token}
         serverUrl={serverUrl}
         connectOptions={{ autoSubscribe: true }}
+        onDisconnected={() => {
+          console.warn("LiveKit Room disconnected safely.");
+        }}
       >
         <CallInterface roomId={roomId} />
         <RoomAudioRenderer />
@@ -58,7 +82,6 @@ function CallInterface({ roomId }: { roomId: string }) {
   const [time, setTime] = useState(0);
   const [hadOperator, setHadOperator] = useState(false);
 
-  // Call duration counter
   useEffect(() => {
     const timer = setInterval(() => setTime((prev) => prev + 1), 1000);
     return () => clearInterval(timer);
@@ -78,7 +101,6 @@ function CallInterface({ roomId }: { roomId: string }) {
     if (isOperatorPresent) {
       setHadOperator(true);
     }
-
   }, [isOperatorPresent]);
 
   const toggleMute = async () => {
@@ -98,7 +120,6 @@ function CallInterface({ roomId }: { roomId: string }) {
 
   return (
     <div className="flex flex-col h-full justify-between pb-12 pt-4 px-6 max-w-md mx-auto relative">
-      {/* Top Navigation Row */}
       <header className="flex justify-between items-center w-full text-zinc-400">
         <button className="p-2 hover:bg-zinc-900 rounded-full transition">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -112,7 +133,6 @@ function CallInterface({ roomId }: { roomId: string }) {
         </button>
       </header>
 
-      {/* Primary Calling State Viewport */}
       <div className="flex flex-col items-center text-center justify-center flex-1 my-auto">
         <div className="relative mb-8 flex items-center justify-center">
           {isOperatorPresent && (
@@ -146,7 +166,6 @@ function CallInterface({ roomId }: { roomId: string }) {
         </div>
       </div>
 
-      {/* Control Actions Row */}
       <div className="flex items-center justify-center gap-10 w-full mt-auto">
         <button 
           onClick={toggleMute}
