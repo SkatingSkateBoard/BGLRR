@@ -55,7 +55,7 @@ export async function acceptEmergencyRequest(requestId: number) {
     if (!apiKey || !apiSecret) {
       return { success: false, error: "LiveKit configuration credentials are missing on the Cloudflare dashboard." };
     }
-    const at = new AccessToken(apiKey, apiSecret, { identity: participantName });
+    const at = new AccessToken(apiKey, apiSecret, { identity: participantName, ttl: "1h" });
     at.addGrant({ 
       roomJoin: true, 
       room: roomName, 
