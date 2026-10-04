@@ -22,7 +22,7 @@ type Resident = {
 type EmergencyRequest = {
   id: number;
   resident: Resident;
-  emerg_category: string;
+  category: string;
   status: string;
   created_at?: string;
 };
@@ -132,7 +132,7 @@ export function EmergenciesScreen() {
 
               const newRequest: EmergencyRequest = {
                 id: newRow.id,
-                emerg_category: newRow.emerg_category,
+                category: newRow.emerg_category,
                 status: newRow.status,
                 resident,
               };
@@ -260,7 +260,7 @@ export function EmergenciesScreen() {
                             <div key={item.id} className="p-4 flex justify-between items-center bg-white hover:bg-gray-50">
                                 <div className="flex w-full items-center">
                                      <p className="w-50 text-sm text-gray-600">{item.created_at ? new Date(item.created_at).toLocaleDateString() : 'N/A'}</p>
-                                     <p className="w-70 px-10 font-medium text-sm">{item.status}</p>
+                                     <p className="w-70 px-10 font-medium text-sm">{item.category}</p>
                                      <p className="w-70 px-10 text-sm">{getFullName(item.resident)}</p>
                                 </div>
                                 {item.status.toUpperCase() === "PENDING" && (
