@@ -46,7 +46,7 @@ export async function createEmergencyRequest(category: string) {
         .from("tbl_emergency_req")
         .insert({
           resident_id: resident.id,
-          emerg_category: category,
+          category: category,
           status: "PENDING" 
         })
         .select("id, status") 
