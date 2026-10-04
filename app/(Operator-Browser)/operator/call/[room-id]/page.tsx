@@ -95,7 +95,7 @@ function OperatorCallInterface({ roomId }: { roomId: string }) {
 
   const handleTerminate = () => {
     room?.disconnect();
-    router.push("/operator/emergency-requests"); 
+    router.push("/operator/dashboard"); 
   };
 
   const handleLogout = async () => {
@@ -105,7 +105,7 @@ function OperatorCallInterface({ roomId }: { roomId: string }) {
     try {
       room?.disconnect();
       await supabase.auth.signOut();
-      router.push("/login"); 
+      router.push("/operator/dashboard"); 
     } catch (error) {
       console.error("Sign out process experienced a fault:", error);
     }
