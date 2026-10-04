@@ -132,7 +132,8 @@ export function EmergenciesScreen() {
 
               const newRequest: EmergencyRequest = {
                 id: newRow.id,
-                category: newRow.emerg_category,
+                created_at: newRow.created_at,
+                category: newRow.category,
                 status: newRow.status,
                 resident,
               };
