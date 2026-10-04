@@ -8,12 +8,12 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel"
 import { Button } from "@/components/ui/button"
-import { InputField } from "@/components/ui/InputField"
-import { DropdownField } from "@/components/ui/Dropdown"
+import { InputField } from "@/components/resident-comps/register-comps/InputField"
+import { DropdownField } from "@/components/resident-comps/register-comps/Dropdown"
 import { CircleQuestionMark } from "lucide-react"
-import { Checkbox } from "@/components/ui/Checkbox"
-import { ScrollableBox } from "@/components/ui/ScrollableBox"
-import { ErrorBox } from "@/components/ui/ErrorInfo"
+import { Checkbox } from "@/components/resident-comps/register-comps/Checkbox"
+import { ScrollableBox } from "@/components/resident-comps/register-comps/ScrollableBox"
+import { ErrorBox } from "@/components/resident-comps/register-comps/ErrorInfo"
 import { useRegistrationForm } from "@/components/context/RegistrationContext"
 
 import {useRouter} from "next/navigation";
@@ -207,18 +207,18 @@ export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ su
               <CarouselItem className="flex flex-col gap-2 w-full">
                 <div className="flex flex-row gap-2">
                   <InputField id="firstName" name="firstName" placeholder="First Name" className="flex-3"
-                    value={formData.first_name || ""} onChange={(v) => updateForm({ first_name: v })} error={errors.first_name}  />
+                    value={formData.first_name || ""} onChange={(v) => updateForm({ first_name: v })} error={errors.first_name} hideErrorText  />
                   <InputField id="suffix" name="suffix" placeholder="Suffix" className="flex-1"
                     value={formData.suffix || ""} onChange={(v) => updateForm({ suffix: v })} />
                 </div>
                 <InputField id="middleName" name="middleName" placeholder="Middle Name" className="w-full"
                   value={formData.middle_name || ""} onChange={(v) => updateForm({ middle_name: v })} />
                 <InputField id="lastName" name="lastName" placeholder="Last Name" className="w-full"
-                  value={formData.last_name || ""} onChange={(v) => updateForm({ last_name: v })} error={errors.last_name}  />
+                  value={formData.last_name || ""} onChange={(v) => updateForm({ last_name: v })} error={errors.last_name} hideErrorText  />
                 <InputField id="emailAddress" name="email" placeholder="Email Address" className="w-full"
-                  value={formData.email || ""} onChange={(v) => updateForm({ email: v })} error={errors.email}  />
+                  value={formData.email || ""} onChange={(v) => updateForm({ email: v })} error={errors.email} hideErrorText />
                 <InputField id="phoneNumber" name="phone" placeholder="Phone Number" className="w-full"
-                  value={formData.phone || ""} onChange={(v) => updateForm({ phone: v })} error={errors.phone}  />
+                  value={formData.phone || ""} onChange={(v) => updateForm({ phone: v })} error={errors.phone} hideErrorText  />
               </CarouselItem>
 
               <CarouselItem className="flex flex-col gap-2 w-full">
@@ -266,7 +266,7 @@ export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ su
                 {formData.has_permanent_address === true && (
                   <>
                     <InputField id="permanentAddress" name="permanentAddress" placeholder="Permanent Address" className="w-full"
-                      value={formData.current_address || ""} onChange={(v) => updateForm({ current_address: v })} error={errors.current_address}  />
+                      value={formData.current_address || ""} onChange={(v) => updateForm({ current_address: v })} error={errors.current_address} />
                     <div className="flex flex-row gap-2 items-center">
                       <CircleQuestionMark size={20} className="text-gray-400 shrink-0" />
                       <p className="text-gray-400 text-[12px] italic">
@@ -420,7 +420,7 @@ export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ su
         </CarouselContent>
       </Carousel>
 
-      <div className="flex flex-col items-center gap-2 mt-4">
+      <div className="flex flex-col items-center gap-2 mt-4" shrink-0>
         <Button className={buttonClass} onClick={handleNext} disabled={!canNext && !isLastStep}>
           {isLastStep ? "Submit" : "Next"}
         </Button>

@@ -1,5 +1,5 @@
 import { acceptEmergencyRequest } from "./actions";
-import EmergencyList from "@/components/operatorComps/EmergencyList";
+import EmergencyList from "@/components/operator-comps/EmergencyList";
 import styles from "./page.module.css";
 
 export default function EmergencyRequestsPage() {

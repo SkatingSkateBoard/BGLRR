@@ -1,7 +1,7 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { MyCarousel } from '@/components/residentComps/Carousel';
+import { MyCarousel } from '@/components/resident-comps/Carousel';
 import {FormProvider } from '@/components/context/RegistrationContext';
 import {signUpResident} from './actions';
 
