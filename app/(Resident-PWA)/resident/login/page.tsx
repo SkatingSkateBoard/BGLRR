@@ -32,7 +32,7 @@ export default function LoginPage() {
         if (result.isEmailNotConfirmed) {
           sessionStorage.setItem("signupEmail", email);
           sessionStorage.setItem("otpSource", "login");
-          router.push("/otp");
+          router.push("/resident/otp");
           return;
         }
 
@@ -49,7 +49,7 @@ export default function LoginPage() {
   }
 
   const moveToRegister = () => {
-    router.push("/signup"); 
+    router.push("/resident/signup"); 
   };
 
   useEffect(() => {

@@ -141,7 +141,7 @@ export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ su
       sessionStorage.setItem("signupEmail", formData.email || "");
       sessionStorage.setItem("otpSource", "signup");
 
-      router.push("/otp");
+      router.push("/resident/otp");
       
     } catch (err) {
       console.error("Failed to process resident submission context data:", err);
