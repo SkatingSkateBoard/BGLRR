@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { InputField } from "@/components/resident-comps/register-comps/InputField"
 import { DropdownField } from "@/components/resident-comps/register-comps/Dropdown"
-import { CircleQuestionMark } from "lucide-react"
+import { CircleQuestionMark, Loader2 } from "lucide-react"
 import { Checkbox } from "@/components/resident-comps/register-comps/Checkbox"
 import { ScrollableBox } from "@/components/resident-comps/register-comps/ScrollableBox"
 import { ErrorBox } from "@/components/resident-comps/register-comps/ErrorInfo"
@@ -40,6 +40,8 @@ export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ su
 
   const router = useRouter();
   const supabase = createClient();
+
+  const [isLoading, setIsLoading] = React.useState(false) 
 
   const [outerApi, setOuterApi] = React.useState<CarouselApi>()
   const innerApis = React.useRef<Map<number, NonNullable<CarouselApi>>>(new Map())
@@ -127,8 +129,11 @@ export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ su
       return;
     }
 
+    
+
     setShowError(false);
     console.log("Submitting context form data directly to database table:", formData);
+    setIsLoading(true) 
 
     try {
       const result = await signUp(formData);
@@ -145,12 +150,16 @@ export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ su
       
     } catch (err) {
       console.error("Failed to process resident submission context data:", err);
+    } finally {
+      // 👈 3. Always turn loading OFF when done or if a crash happens
+      setIsLoading(false) 
     }
   };
   
   const handleNext = () => {
-    if (!outerApi) return
+     if (!outerApi || isLoading) return
     setShowError(false)
+
 
     const inner = getInner()
     if (inner?.canScrollNext()) {
@@ -164,7 +173,8 @@ export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ su
   }
 
   const handlePrev = () => {
-    if (!outerApi) return
+     if (!outerApi || isLoading) return
+       setShowError(false)
     const inner = getInner()
     if (inner?.canScrollPrev()) {
       inner.scrollPrev()
@@ -420,11 +430,31 @@ export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ su
         </CarouselContent>
       </Carousel>
 
-      <div className="flex flex-col items-center gap-2 mt-4" shrink-0>
-        <Button className={buttonClass} onClick={handleNext} disabled={!canNext && !isLastStep}>
-          {isLastStep ? "Submit" : "Next"}
+      <div className="flex flex-col items-center gap-2 mt-4" shrink-0="true">
+        <Button 
+          className={buttonClass} 
+          onClick={handleNext} 
+          disabled={(!canNext && !isLastStep) || isLoading} // 👈 Disabled when active
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Submitting...
+            </>
+          ) : isLastStep ? (
+            "Submit"
+          ) : (
+            "Next"
+          )}
         </Button>
-        <Button className={`${buttonClass} bg-gray-700`} onClick={handlePrev} disabled={!canPrev}>Back</Button>
+        
+        <Button 
+          className={`${buttonClass} bg-gray-700`} 
+          onClick={handlePrev} 
+          disabled={!canPrev || isLoading} // 👈 Back disabled during loading
+        >
+          Back
+        </Button>
       </div>
     </div>
   )
