@@ -40,7 +40,7 @@ export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
   //public paths
-  const publicPaths = ['/resident/login', '/operator/login', '/unauthorized']
+  const publicPaths = ['/resident/login', '/operator/login', '/unauthorized', '/resident/signup', '/resident/otp']
 
   if (publicPaths.includes(pathname)) {
     return response;
