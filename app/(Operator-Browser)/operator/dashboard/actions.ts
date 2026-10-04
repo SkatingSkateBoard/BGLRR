@@ -16,7 +16,10 @@ interface EmergencyRequestUpdateResponse {
   operator_id: number | null;
   created_at: string;
   category?: string;
-  reporter_name?: string;
+  resident: {
+    first_name: string;
+    last_name: string;
+  } | null;
 }
 
 /**
@@ -52,7 +55,7 @@ export async function acceptEmergencyRequest(requestId: number) {
       .update({ status: "ACTIVE", operator_id: operator.id })
       .eq("id", requestId)
       .eq("status", "PENDING")
-      .select("id, created_at, status, category, reporter_name"); // Matches front-end query targets
+      .select("id, created_at, status, category, resident:tbl_resident(first_name, last_name)"); // Matches front-end query targets
 
     if (updateError) {
       return { success: false, error: `Database transaction failed: ${updateError.message}` };
@@ -63,7 +66,8 @@ export async function acceptEmergencyRequest(requestId: number) {
       return { success: false, error: "This emergency request has already been claimed by another operator." };
     }
 
-    const claimedTicket = updatedRows[0] as EmergencyRequestUpdateResponse;
+    const tickets = updatedRows as unknown as EmergencyRequestUpdateResponse[];
+    const claimedTicket = tickets[0];
 
     // 4. Generate unique identification variables for the incoming LiveKit room session
     const roomName = `emergency-${requestId}`;
