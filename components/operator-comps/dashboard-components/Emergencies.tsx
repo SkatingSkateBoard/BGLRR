@@ -4,26 +4,23 @@ import * as React from "react"
 import { EmergencyItem } from "./EmergencyItem"
 import MapWrapper from "../map/MapWrapper"
 import { ChevronRight, ChevronLeft } from "lucide-react"
-import { createClient } from "@/utils/supabase/client" // Ensure you have this utility path configured
-import { acceptEmergencyRequest } from "@/app/(Operator-Browser)/operator/dashboard/actions" // Replace with the real path to your server action file
+import { createClient } from "@/utils/supabase/client" 
+import { acceptEmergencyRequest } from "@/app/(Operator-Browser)/operator/dashboard/actions" 
 
 type TabId = "pending" | "active"
 
-// TypeScript type derived from your Supabase query targets
 interface EmergencyRequest {
   id: number
   created_at: string
   status: "PENDING" | "ACTIVE" | string
-  // Add other payload variables here if needed (e.g., user profile name joins)
-  tbl_profiles?: {
-    full_name: string
-  } | null
+  category?: "fire" | "medical" | "crime" | "accident" | "missing"
+  reporter_name?: string
 }
 
 const PAGE_SIZE = 10
 
 export function EmergenciesScreen() {
-    const tabClass = "bg-gray-100/0 flex font-bold text-lg w-25 h-full justify-center items-center cursor-pointer"
+    const tabClass = "bg-gray-100/0 flex font-bold text-lg w-30 h-full justify-center items-center cursor-pointer"
     const tabContainerClass = `shrink-0 mt-7
     flex flex-row items-center gap-5 bg-white rounded-lg w-full h-15 px-7 shadow-lg/5
     bg-linear-to-b from-blue-900/10 to-[rgb(35,35,184)]/10 border-gray-300 border-b-2 border-r-2
@@ -41,23 +38,21 @@ export function EmergenciesScreen() {
     const headerTextClass = "text-gray-400"
     const emergencyContainerClass = "flex flex-col flex-1 min-h-0 w-full overflow-y-auto"
 
-    // Real data state
     const [emergencies, setEmergencies] = React.useState<EmergencyRequest[]>([])
     const [loading, setLoading] = React.useState<boolean>(true)
     const [activeTab, setActiveTab] = React.useState<TabId>("pending")
     const [page, setPage] = React.useState(1)
 
-    // Fetch emergencies from Supabase on component mount
+    // Combined Initial Fetch & Realtime Listeners
     React.useEffect(() => {
+        const supabase = createClient()
+
         async function fetchEmergencies() {
             try {
                 setLoading(true)
-                const supabase = createClient()
-                
-                // Adjust your select parameters as needed based on your true table design
                 const { data, error } = await supabase
                     .from("tbl_emergency_req")
-                    .select("id, created_at, status") 
+                    .select("id, created_at, status, category,resident:tbl_resident(first_name, last_name)") 
                     .order("created_at", { ascending: false })
 
                 if (error) {
@@ -76,9 +71,54 @@ export function EmergenciesScreen() {
         }
 
         fetchEmergencies()
+
+        // Setup the live streaming pipeline channel
+        const channel = supabase
+            .channel("realtime-emergencies-feed")
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "tbl_emergency_req",
+                },
+                (payload) => {
+                    console.log("Realtime emergency event fired:", payload)
+
+                    if (payload.eventType === "INSERT") {
+                        const newRequest = payload.new as EmergencyRequest
+                        setEmergencies((current) => {
+                            // Deduplicate check
+                            if (current.some((req) => req.id === newRequest.id)) return current
+                            return [newRequest, ...current]
+                        })
+                    }
+
+                    if (payload.eventType === "UPDATE") {
+                        const updatedRow = payload.new as EmergencyRequest
+                        setEmergencies((current) =>
+                            current.map((item) =>
+                                item.id === updatedRow.id ? { ...item, ...updatedRow } : item
+                            )
+                        )
+                    }
+
+                    if (payload.eventType === "DELETE") {
+                        const oldId = payload.old?.id
+                        if (oldId) {
+                            setEmergencies((current) => current.filter((item) => item.id !== oldId))
+                        }
+                    }
+                }
+            )
+            .subscribe()
+
+        // Cleanup Subscription when user leaves the component view
+        return () => {
+            supabase.removeChannel(channel)
+        }
     }, [])
 
-    // Filter real items based on active workspace tab
     const pendingItems = emergencies.filter(item => item.status === "PENDING")
     const activeItems = emergencies.filter(item => item.status === "ACTIVE")
 
@@ -99,19 +139,16 @@ export function EmergenciesScreen() {
             }`
     }
 
-    // Interactive handler function for your components to accept calls
     async function handleAcceptEmergency(requestId: number) {
         const result = await acceptEmergencyRequest(requestId)
         
         if (result.success) {
-            // Local state mutation to dynamically update the UI without forced reload
             setEmergencies(prev => 
                 prev.map(item => 
                     item.id === requestId ? { ...item, status: "ACTIVE" } : item
                 )
             )
-            // Optional: Route user or open LiveKit call using result.livekitToken / result.roomId
-            console.log("Connected to LiveKit session:", result.livekitToken)
+            console.log("Connected to LiveKit session token:", result.livekitToken)
         } else {
             alert(result.error || "Action failed")
         }
@@ -168,7 +205,7 @@ export function EmergenciesScreen() {
                     pagedItems.map((item) => (
                         <EmergencyItem 
                             key={item.id} 
-                            item={item} // Sent whole item data package to sub-element
+                            item={item} 
                             status={activeTab} 
                             onAccept={() => handleAcceptEmergency(item.id)}
                         />

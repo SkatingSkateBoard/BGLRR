@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { approveResident, rejectResident } from "@/app/actions/actions";
+import { approveResident, rejectResident } from "@/app/actions/verify";
 
 type Resident = {
   id: number;

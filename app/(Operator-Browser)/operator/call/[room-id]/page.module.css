@@ -1,0 +1,186 @@
+.page,
+.authError {
+  color: var(--operator-ink);
+  background:
+    radial-gradient(ellipse at top left, rgb(255 255 255 / 68%), transparent 48%),
+    var(--operator-surface);
+}
+
+.authError .authPanel {
+  border: 1px solid #d7a6a0;
+  border-radius: 1.25rem;
+  background: linear-gradient(145deg, #fff5f2, #e9d9d4);
+  box-shadow:
+    10px 12px 24px var(--operator-shadow),
+    -5px -5px 14px var(--operator-highlight),
+    inset 1px 1px 0 rgb(255 255 255 / 78%);
+}
+
+.authError .authTitle {
+  color: var(--operator-danger);
+}
+
+.authError .authText {
+  color: var(--operator-muted);
+}
+
+.frame {
+  min-height: 100vh;
+  color: var(--operator-ink);
+}
+
+.header {
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--operator-highlight);
+  border-radius: 1.1rem;
+  background: linear-gradient(145deg, #fbf8f1, #d8d0c2);
+  box-shadow:
+    7px 7px 16px var(--operator-shadow),
+    -5px -5px 14px var(--operator-highlight),
+    inset 1px 1px 0 rgb(255 255 255 / 76%);
+}
+
+.page .status,
+.page .sessionCard,
+.page .viewport {
+  border: 1px solid var(--operator-highlight);
+  border-radius: 1.1rem;
+  background: linear-gradient(145deg, #f7f3eb, #ded7ca);
+  box-shadow:
+    7px 7px 16px var(--operator-shadow),
+    -5px -5px 14px var(--operator-highlight),
+    inset 1px 1px 0 rgb(255 255 255 / 72%);
+}
+
+.page .sessionCard {
+  padding: 1.5rem;
+}
+
+.page .viewport {
+  min-height: 15rem;
+}
+
+/* ---------- Text colors (these used to be zinc-* utilities that vanished on beige) ---------- */
+
+.page .title {
+  color: var(--operator-ink);
+}
+
+.page .channel {
+  color: var(--operator-muted);
+}
+
+.page .alertBadge {
+  color: var(--operator-danger);
+  border: 1px solid #d7a6a0;
+  background: linear-gradient(145deg, #fbe9e5, #e6c8c2);
+  box-shadow:
+    inset 2px 2px 4px rgb(120 60 50 / 18%),
+    inset -1px -1px 2px rgb(255 255 255 / 70%);
+}
+
+.page .statusText {
+  color: var(--operator-ink);
+}
+
+.page .sep {
+  color: var(--operator-edge);
+}
+
+.page .time {
+  color: var(--operator-muted);
+}
+
+.page .dot {
+  box-shadow: inset 1px 1px 2px rgb(0 0 0 / 25%);
+}
+
+.page .dotIdle {
+  background: #9a9284;
+}
+
+.page .dotLive {
+  background: #2f9e6e;
+}
+
+.page .sectionLabel,
+.page .fieldLabel {
+  color: var(--operator-muted);
+}
+
+.page .fieldValue {
+  color: var(--operator-ink);
+}
+
+.page .sessionDivider {
+  border-top: 1px solid var(--operator-edge);
+}
+
+.page .mutedIcon,
+.page .participants {
+  color: var(--operator-muted);
+}
+
+.page .viewportTitle {
+  color: var(--operator-ink);
+}
+
+.page .viewportSub {
+  color: var(--operator-muted);
+}
+
+.page .signalIdle {
+  color: #9a9284;
+}
+
+.page .signalLive {
+  color: #2f9e6e;
+}
+
+.page .bar {
+  background: #2f9e6e;
+}
+
+/* ---------- Controls ---------- */
+
+.page .controls {
+  border-color: var(--operator-edge);
+}
+
+.page .controlButton {
+  border: 1px solid var(--operator-edge);
+  border-radius: 0.75rem;
+  color: var(--operator-ink);
+  background: linear-gradient(145deg, #f8f4ec, #d8d0c2);
+  box-shadow:
+    4px 5px 10px var(--operator-shadow),
+    inset 1px 1px 0 rgb(255 255 255 / 78%);
+}
+
+.page .controlButton:hover {
+  transform: translateY(-1px);
+}
+
+.page .muted,
+.page .disconnect {
+  color: #fff;
+  border-color: #842e29;
+  background: linear-gradient(145deg, #c15b51, var(--operator-danger));
+}
+
+@media (max-width: 640px) {
+  .page .header {
+    align-items: flex-start;
+    gap: 1rem;
+    flex-direction: column;
+  }
+
+  .page .status {
+    align-self: stretch;
+    justify-content: space-between;
+  }
+
+  .page .controls {
+    flex-wrap: wrap;
+  }
+}

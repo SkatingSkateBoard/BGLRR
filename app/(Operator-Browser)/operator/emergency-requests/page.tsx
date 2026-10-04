@@ -1,4 +1,4 @@
-import { acceptEmergencyRequest } from "./actions";
+import { acceptEmergencyRequest } from "../../../actions/operator";
 import EmergencyList from "@/components/operator-comps/EmergencyList";
 import styles from "./page.module.css";
 
