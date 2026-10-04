@@ -39,10 +39,11 @@ export default function Map({
         scrollWheelZoom
         className="h-full w-full absolute inset-0 rounded-xl"
       >
-        <TileLayer
-          attribution='&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
-          url="https://openstreetmap.org{z}/{x}/{y}.png"
+      <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+      
         <Marker position={center} icon={defaultIcon}>
           <Popup>You are here</Popup>
         </Marker>

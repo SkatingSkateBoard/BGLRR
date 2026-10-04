@@ -2,7 +2,23 @@ import { Check, Headset } from "lucide-react"
 
 type ItemStatus = "pending" | "active"
 
-export function EmergencyItem({ status }: { status: ItemStatus }) {
+// 1. Structure matching your real Supabase query fields
+interface EmergencyRequest {
+  id: number
+  created_at: string
+  status: string
+  category?: "fire" | "medical" | "crime" | "accident" | "missing" // Adjust if names match database strings exactly
+  reporter_name?: string // If you choose to join user records later
+}
+
+// 2. Define structural requirements for component execution
+interface EmergencyItemProps {
+  status: ItemStatus
+  item: EmergencyRequest
+  onAccept: () => Promise<void>
+}
+
+export function EmergencyItem({ status, item, onAccept }: EmergencyItemProps) {
     const itemClass = `relative shrink-0
     flex flex-row items-center
     px-7 bg-white h-17 w-full shadow-lg/10
@@ -14,7 +30,7 @@ export function EmergencyItem({ status }: { status: ItemStatus }) {
     bg-linear-to-b from-white to-blue-700/5
     `
 
-    const buttonClass = `
+    const acceptButtonClass = `
     group flex cursor-pointer absolute right-7 w-30 h-10 justify-center items-center
     border-2 border-green-500
     rounded-xl
@@ -22,20 +38,50 @@ export function EmergencyItem({ status }: { status: ItemStatus }) {
     hover:bg-green-500
     `
 
+    const activeBadgeClass = `
+    flex absolute right-7 w-30 h-10 justify-center items-center
+    border-2 border-blue-500 text-blue-500
+    rounded-xl gap-2 font-semibold text-sm
+    `
+
+    // Super simple date conversion for your database timestamp
+    const formattedDate = new Date(item.created_at).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+    })
+
     return (
         <div className={itemClass}>
+            {/* Real Timestamp */}
             <div className={`text-start w-50`}>
-                <p>8 seconds ago</p>
+                <p className="text-sm text-gray-700">{formattedDate}</p>
             </div>
+            
+            {/* Real Category Layout from DB */}
             <div className={`w-70 justify-center text-center px-10`}>
-                <CategoryMark category="fire"/>
+                <CategoryMark category={(item.category || "fire")} />
             </div>
+            
+            {/* Reporter Data Context */}
             <div className={`w-70 text-start px-10`}>
-                <p>Juan P. Dela Cruz</p>
+                <p className="text-gray-900 font-medium">
+                    {item.reporter_name || `Emergency Ticket #${item.id}`}
+                </p>
             </div>
-            <button type="button" className={buttonClass}>
-                <Headset size={20} className="text-green-500 group-hover:text-white transition-colors duration-200" strokeWidth={2.5} />
-            </button>
+
+            {/* Context Aware Action System */}
+            {status === "pending" ? (
+                <button type="button" className={acceptButtonClass} onClick={onAccept}>
+                    <Headset size={20} className="text-green-500 group-hover:text-white transition-colors duration-200" strokeWidth={2.5} />
+                </button>
+            ) : (
+                <div className={activeBadgeClass}>
+                    <Check size={18} strokeWidth={3} />
+                    <span>Claimed</span>
+                </div>
+            )}
         </div>
     )
 }
@@ -60,15 +106,15 @@ function CategoryMark({ category }: { category: CategoryType }) {
     }
 
     const boxClass = `
-        rounded-full w-full
+        rounded-full w-full py-0.5
         ${colors[category]}
         text-center justify-center items-center
-        text-white font-semibold
+        text-white font-semibold text-sm
     `
 
     return (
         <div className={boxClass}>
-            {labels[category]}
+            {labels[category] || "Unknown"}
         </div>
     )
 }
