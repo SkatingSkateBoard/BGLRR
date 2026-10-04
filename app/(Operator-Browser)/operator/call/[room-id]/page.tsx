@@ -136,7 +136,7 @@ function OperatorCallInterface({ roomId }: { roomId: string }) {
 
           {/* Secure Session Sign Out Trigger Button */}
           <button 
-            onClick={handleLogout}
+            onClick={handleTerminate}
             title="Disconnect Stream and Sign Out"
             className="flex items-center justify-center p-2.5 rounded-xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors duration-150 cursor-pointer shadow-xs"
           >
