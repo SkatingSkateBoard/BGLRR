@@ -3,6 +3,7 @@
 import React, { use, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { LiveKitRoom, RoomAudioRenderer, useParticipants, useLocalParticipant, useRoomContext } from "@livekit/components-react";
+import { createClient } from "@/utils/supabase/client"; 
 import styles from "./page.module.css";
 
 /*---------------------------------------------------------------------------------------------------------------------------------------------------*/
@@ -28,7 +29,6 @@ function MapPlaceholder() {
 }
 
 /*---------------------------------------------------------------------------------------------------------------------------------------------------*/
-
 
 export default function OperatorCallPage({ params }: { params: Promise<{ "room-id": string }> }) {
   const searchParams = useSearchParams();
@@ -69,6 +69,7 @@ function OperatorCallInterface({ roomId }: { roomId: string }) {
   const participants = useParticipants();
   const room = useRoomContext();
   const router = useRouter();
+  const supabase = createClient();
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
   const [time, setTime] = useState(0);
 
@@ -77,7 +78,7 @@ function OperatorCallInterface({ roomId }: { roomId: string }) {
     return () => clearInterval(timer);
   }, []);
 
-  const isMuted = !isMicrophoneEnabled; // live value, no copied state
+  const isMuted = !isMicrophoneEnabled; 
 
   const formatTime = (s: number) =>
     `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
@@ -94,9 +95,21 @@ function OperatorCallInterface({ roomId }: { roomId: string }) {
 
   const handleTerminate = () => {
     room?.disconnect();
-    router.push("/operator/emergency-requests"); //goes back to emergencies tab instead of overview tab
+    router.push("/operator/emergency-requests"); 
   };
 
+  const handleLogout = async () => {
+    const confirmLogout = window.confirm("Are you sure you want to log out? This will disconnect the active call feed.");
+    if (!confirmLogout) return;
+
+    try {
+      room?.disconnect();
+      await supabase.auth.signOut();
+      router.push("/login"); 
+    } catch (error) {
+      console.error("Sign out process experienced a fault:", error);
+    }
+  };
   return (
     /* min-h-screen instead of h-screen so the taller Session Info card can grow the page instead of overflowing */
     <div className={`${styles.frame} flex flex-col min-h-screen max-w-5xl mx-auto p-6 md:p-10 justify-between`}>
@@ -111,11 +124,26 @@ function OperatorCallInterface({ roomId }: { roomId: string }) {
             <p className={`${styles.channel} text-xs font-mono`}>CHANNEL // {roomId}</p>
           </div>
         </div>
-        <div className={`${styles.status} flex items-center gap-4 px-4 py-2 rounded-xl`}>
-          <div className={`${styles.dot} ${isResidentConnected ? styles.dotLive : styles.dotIdle} w-2 h-2 rounded-full ${isResidentConnected ? "animate-pulse" : ""}`} />
-          <span className={`${styles.statusText} text-sm font-medium`}>{isResidentConnected ? "Feed Active" : "Line Standby"}</span>
-          <span className={styles.sep}>|</span>
-          <span className={`${styles.time} text-sm font-mono`}>{formatTime(time)}</span>
+        
+        {/* Right Header Action Area */}
+        <div className="flex items-center gap-4">
+          <div className={`${styles.status} flex items-center gap-4 px-4 py-2 rounded-xl`}>
+            <div className={`${styles.dot} ${isResidentConnected ? styles.dotLive : styles.dotIdle} w-2 h-2 rounded-full ${isResidentConnected ? "animate-pulse" : ""}`} />
+            <span className={`${styles.statusText} text-sm font-medium`}>{isResidentConnected ? "Feed Active" : "Line Standby"}</span>
+            <span className={styles.sep}>|</span>
+            <span className={`${styles.time} text-sm font-mono`}>{formatTime(time)}</span>
+          </div>
+
+          {/* Secure Session Sign Out Trigger Button */}
+          <button 
+            onClick={handleLogout}
+            title="Disconnect Stream and Sign Out"
+            className="flex items-center justify-center p-2.5 rounded-xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors duration-150 cursor-pointer shadow-xs"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+            </svg>
+          </button>
         </div>
       </header>
 
