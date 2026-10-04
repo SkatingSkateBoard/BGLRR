@@ -50,7 +50,12 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
             newErrors.email = "Invalid email format";
         }
         
-        if (!formData.phone?.trim()) newErrors.phone = "Phone number is required";
+        if (!formData.phone?.trim()) {
+            newErrors.phone = "Phone number is required";
+        } else if (!/^0\d{10}$/.test(formData.phone.trim())) {
+            newErrors.phone = "Phone number must be exactly 11 digits and start with 0";
+        }
+
         
         if (formData.age === "" || formData.age === undefined) {
             newErrors.age = "Age is required";
