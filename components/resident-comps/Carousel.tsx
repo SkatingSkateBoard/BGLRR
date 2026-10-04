@@ -218,7 +218,7 @@ export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ su
                 <InputField id="emailAddress" name="email" placeholder="Email Address" className="w-full"
                   value={formData.email || ""} onChange={(v) => updateForm({ email: v })} error={errors.email} hideErrorText />
                 <InputField id="phoneNumber" name="phone" placeholder="Phone Number" className="w-full"
-                  value={formData.phone || ""} onChange={(v) => updateForm({ phone: v })} error={errors.phone} hideErrorText  />
+                  value={formData.phone || ""} onChange={(v) => updateForm({ phone: v })} error={errors.phone} maxLength={11} hideErrorText  />
               </CarouselItem>
 
               <CarouselItem className="flex flex-col gap-2 w-full">

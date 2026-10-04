@@ -5,6 +5,7 @@ import { Eye, EyeOff } from "lucide-react"
 
 export function InputField({
     id, name, placeholder, className, type = "", value, onChange, error, hideErrorText = false,
+    maxLength, // 👈 1. Destructure maxLength here
 }: {
     id: string
     name: string
@@ -15,6 +16,7 @@ export function InputField({
     onChange?: (value: string) => void
     error?: string
     hideErrorText?: boolean
+    maxLength?: number // 👈 2. Add TypeScript definition
 }) {
     const [showPassword, setShowPassword] = React.useState(false)
     const isPassword = type === "password"
@@ -31,6 +33,7 @@ export function InputField({
                     type={inputType}
                     placeholder=" "
                     value={value ?? ""}
+                    maxLength={maxLength} // 👈 3. Forward it to the native input element
                     onChange={(e) => onChange?.(e.target.value)}
                     className={`${inputClass} peer w-full text-[17px] pt-4 ${isPassword ? "pr-10" : ""} ${error ? "border-red-500" : ""}`}
                 />
