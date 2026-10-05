@@ -39,3 +39,24 @@ export async function login(email: string, password: string) {
 export async function operatorLogin(identifier: string, password: string) {
 
 }
+
+export async function isResidentVerified() {
+  const supabase = await createClient();
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  
+  if (userError || !user) {
+    return { success: false, error: "User is not authenticated." };
+  }
+
+  const {data: resident, error: residentError } = await supabase
+    .from("tbl_resident")
+    .select("status")
+    .eq("user_id", user.id)
+    .single();
+    
+  if (residentError || !resident) {
+    return { success: false, error: "Resident record not found." };
+  }
+
+  return { status: resident.status};
+}
