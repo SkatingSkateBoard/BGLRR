@@ -6,7 +6,7 @@ export async function approveResident(residentId: number) {
     const supabase = await createClient(); 
     const { data, error } = await supabase
         .from("tbl_resident")
-        .update({ status: "VERIFIED" })
+        .update({ status: "verified" })
         .eq("id", residentId);
 
     if (error) {
@@ -21,7 +21,7 @@ export async function rejectResident(residentId: number) {
     const supabase = await createClient();
     const { data, error } = await supabase
         .from("tbl_resident")
-        .update({ status: "REJECTED" })
+        .update({ status: "rejected" })
         .eq("id", residentId);
 
     if (error) {

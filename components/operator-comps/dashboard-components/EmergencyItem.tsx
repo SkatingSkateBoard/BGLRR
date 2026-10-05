@@ -2,13 +2,20 @@ import { Check, Headset } from "lucide-react"
 
 type ItemStatus = "pending" | "active"
 
+type Resident = {
+  id: number;
+  first_name: string;
+  middle_name?: string | null;
+  last_name: string;
+  suffix?: string | null;
+};
 // 1. Structure matching your real Supabase query fields
 interface EmergencyRequest {
-  id: number
-  created_at: string
-  status: string
-  category?: "fire" | "medical" | "crime" | "accident" | "missing" // Adjust if names match database strings exactly
-  reporter_name?: string // If you choose to join user records later
+    id: number;
+    resident: Resident;
+    category: "fire" | "medical" | "crime" | "disaster" | "missing";
+    status: string;
+    created_at: string;
 }
 
 // 2. Define structural requirements for component execution
@@ -45,12 +52,23 @@ export function EmergencyItem({ status, item, onAccept }: EmergencyItemProps) {
     `
 
     // Super simple date conversion for your database timestamp
-    const formattedDate = new Date(item.created_at).toLocaleDateString(undefined, {
+    const formattedDate : string = new Date(item.created_at).toLocaleDateString(undefined, {
         month: "short",
         day: "numeric",
         hour: "2-digit",
         minute: "2-digit"
     })
+
+    function getFullName(resident: Resident) {
+        return [
+        resident.first_name,
+        resident.middle_name?.trim(),
+        resident.last_name,
+        resident.suffix?.trim(),
+        ]
+        .filter(Boolean)
+        .join(" ");
+    }
 
     return (
         <div className={itemClass}>
@@ -67,7 +85,7 @@ export function EmergencyItem({ status, item, onAccept }: EmergencyItemProps) {
             {/* Reporter Data Context */}
             <div className={`w-70 text-start px-10`}>
                 <p className="text-gray-900 font-medium">
-                    {item.reporter_name || `Emergency Ticket #${item.id}`}
+                    {getFullName(item.resident) || `Emergency Ticket #${item.id}`}
                 </p>
             </div>
 
@@ -86,14 +104,15 @@ export function EmergencyItem({ status, item, onAccept }: EmergencyItemProps) {
     )
 }
 
-type CategoryType = "fire" | "medical" | "crime" | "accident" | "missing"
+
+type CategoryType = "fire" | "medical" | "crime" | "disaster" | "missing"
 
 function CategoryMark({ category }: { category: CategoryType }) {
     const labels: Record<CategoryType, string> = {
         fire: "Fire",
         medical: "Medical",
         crime: "Crime",
-        accident: "Accident",
+        disaster: "Disaster",
         missing: "Missing Person",
     }
 
@@ -101,7 +120,7 @@ function CategoryMark({ category }: { category: CategoryType }) {
         fire: "bg-red-600",
         medical: "bg-[rgb(36,193,161)]",
         crime: "bg-blue-700",
-        accident: "bg-[rgb(255,142,60)]",
+        disaster: "bg-[rgb(255,142,60)]",
         missing: "bg-[rgb(180,92,207)]",
     }
 

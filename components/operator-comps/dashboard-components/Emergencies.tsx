@@ -22,9 +22,9 @@ type Resident = {
 type EmergencyRequest = {
   id: number;
   resident: Resident;
-  category: string;
+  category: "fire" | "medical" | "crime" | "disaster" | "missing";
   status: string;
-  created_at?: string;
+  created_at: string;
 };
 
 
@@ -177,18 +177,7 @@ export function EmergenciesScreen() {
       : `${base} border-transparent text-gray-500`
   }
 
-  function getFullName(resident: Resident) {
-    return [
-      resident.first_name,
-      resident.middle_name?.trim(),
-      resident.last_name,
-      resident.suffix?.trim(),
-    ]
-      .filter(Boolean)
-      .join(" ");
-  }
-
-  function handleAccept(requestId: number) {
+  function handleAccept(requestId: number) : void {
       startTransition(async () => {
         try {
           // 2. Call the Server Action directly here
@@ -254,25 +243,16 @@ export function EmergenciesScreen() {
                 {loading ? (
                     <div className="p-7 text-center text-gray-500 font-semibold">Loading data...</div>
                 ) : pagedItems.length === 0 ? (
-                    <div className="p-7 text-center text-gray-400">No requests found inside this view.</div>
+                    <div className="p-7 text-center text-gray-400">No requests found inside.</div>
                 ) : (
                     <div className="flex flex-col w-full divide-y divide-gray-100">
                         {pagedItems.map((item) => (
                             <div key={item.id} className="p-4 flex justify-between items-center bg-white hover:bg-gray-50">
-                                <div className="flex w-full items-center">
-                                     <p className="w-50 text-sm text-gray-600">{item.created_at ? new Date(item.created_at).toLocaleDateString() : 'N/A'}</p>
-                                     <p className="w-70 px-10 font-medium text-sm">{item.category}</p>
-                                     <p className="w-70 px-10 text-sm">{getFullName(item.resident)}</p>
-                                </div>
-                                {item.status.toUpperCase() === "PENDING" && (
-                                    <button 
-                                        disabled={isPending}
-                                        onClick={() => handleAccept(item.id)}
-                                        className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-blue-700 disabled:opacity-50"
-                                    >
-                                        {isPending ? "Accepting..." : "Accept"}
-                                    </button>
-                                )}
+                                <EmergencyItem
+                                    status={item.status === "pending" ? "pending" : "active"}
+                                    item={item}
+                                    onAccept={async() => handleAccept(item.id)}
+                                />
                             </div>
                         ))}
                     </div>

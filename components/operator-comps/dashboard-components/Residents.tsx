@@ -27,7 +27,7 @@ export function RegisteredScreen() {
       const { data, error } = await supabase
         .from("tbl_resident")
         .select("*")
-        .eq("status", "PENDING");
+        .eq("status", "pending");
       if (error) {
         console.error("Error fetching pending residents:", error);
       } else {

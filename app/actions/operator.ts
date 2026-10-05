@@ -32,9 +32,9 @@ export async function acceptEmergencyRequest(requestId: number) {
 
     const { data: updatedRows, error: updateError } = await supabase
       .from("tbl_emergency_req")
-      .update({ status: "ACTIVE", operator_id: operator.id })
+      .update({ status: "active", operator_id: operator.id })
       .eq("id", requestId)
-      .eq("status", "PENDING")
+      .eq("status", "pending")
       .select();
 
     if (updateError) {

@@ -36,7 +36,6 @@ export async function acceptEmergencyRequest(requestId: number) {
       return { success: false, error: "Operator is not authenticated." };
     }
 
-    // 2. Resolve the internal system layout details for the active operator
     const { data: operatorData, error: operatorError } = await supabase
       .from("tbl_operator")
       .select("id, user_id, username")
@@ -52,9 +51,9 @@ export async function acceptEmergencyRequest(requestId: number) {
     // 3. Perform atomic state transaction updates on the designated ticket row
     const { data: updatedRows, error: updateError } = await supabase
       .from("tbl_emergency_req")
-      .update({ status: "ACTIVE", operator_id: operator.id })
+      .update({ status: "active", operator_id: operator.id })
       .eq("id", requestId)
-      .eq("status", "PENDING")
+      .eq("status", "pending")
       .select("id, created_at, status, category, resident:tbl_resident(first_name, last_name)"); // Matches front-end query targets
 
     if (updateError) {

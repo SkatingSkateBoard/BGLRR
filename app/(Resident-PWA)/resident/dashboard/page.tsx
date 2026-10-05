@@ -16,7 +16,7 @@ interface EmergencyCategory {
 // Icons use two colors: white for the glyph, and `.cut` (the tile's own color) for details cut out of it.
 const categories: EmergencyCategory[] = [
   {
-    id: "Fire",
+    id: "fire",
     tone: "fire",
     label: "Sunog",
     icon: (
@@ -33,7 +33,7 @@ const categories: EmergencyCategory[] = [
     ),
   },
   {
-    id: "Disaster",
+    id: "disaster",
     tone: "disaster",
     label: "Aksidente",
     icon: (
@@ -53,7 +53,7 @@ const categories: EmergencyCategory[] = [
     ),
   },
   {
-    id: "Crime",
+    id: "crime",
     tone: "crime",
     label: "Krimen",
     icon: (
@@ -73,7 +73,7 @@ const categories: EmergencyCategory[] = [
     ),
   },
   {
-    id: "Medical",
+    id: "medical",
     tone: "medical",
     label: "Medikal",
     icon: (
@@ -89,7 +89,7 @@ const categories: EmergencyCategory[] = [
     ),
   },
   {
-    id: "Missing Person",
+    id: "missing",
     tone: "missing",
     label: (
       <>

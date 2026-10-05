@@ -47,7 +47,7 @@ export async function createEmergencyRequest(category: string) {
         .insert({
           resident_id: resident.id,
           category: category,
-          status: "PENDING" 
+          status: "pending" 
         })
         .select("id, status") 
         .single();
