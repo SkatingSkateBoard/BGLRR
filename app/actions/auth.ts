@@ -58,5 +58,5 @@ export async function isResidentVerified() {
     return { success: false, error: "Resident record not found." };
   }
 
-  return { status: resident.status};
+  return { success: true, status: resident.status};
 }

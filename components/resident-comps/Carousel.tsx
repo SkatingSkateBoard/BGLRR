@@ -237,7 +237,7 @@ export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ su
                     value={formData.age?.toString() ?? ""} onChange={(v) => updateForm({ age: v === "" ? "" : Number(v) })} error={errors.age}  />
                   <DropdownField id="sex" name="sex" placeholder="Sex" className="flex-1"
                     options={["MALE", "FEMALE"]} value={formData.sex || ""}
-                    onChange={(v) => updateForm({ sex: v as "MALE" | "FEMALE" })} error={errors.sex}  />
+                    onChange={(v) => updateForm({ sex: v as "male" | "female" })} error={errors.sex}  />
                 </div>
                 <InputField id="password" name="password" placeholder="Password" type="password" className="w-full"
                   value={formData.password || ""} onChange={(v) => updateForm({ password: v })} error={errors.password} />
@@ -293,10 +293,10 @@ export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ su
                     name="haveReason" 
                     placeholder="Reason?" 
                     className="flex-1"
-                    options={["Rental", "Work", "Others"]}
+                    options={["rent", "work", "others"]}
                     value={formData.reason || ""}
                     onChange={(v) => {
-                      updateForm({ reason: v, specify_reason: "" });
+                      updateForm({ reason: v as "rent" | "work" | "others" | "", specify_reason: "" });
                     }}
                     error={errors.reason}
                   />

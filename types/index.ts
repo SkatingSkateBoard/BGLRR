@@ -1,4 +1,4 @@
-type Sex = "MALE" | "FEMALE" | "";
+type Sex = "male" | "female" | "";
 
 type GeneralInfo = {
   //General Info 
@@ -18,7 +18,7 @@ type AddressInfo = {
   has_permanent_address: boolean,
   proof_of_accomodation: File | "",
   current_address: string; 
-  reason: string;
+  reason: "work" | "rent" | "others" | "";
   specify_reason: string;
 }
 
@@ -28,7 +28,6 @@ type MedicalInfo = {
   emergency_person: string,
   emergency_contact_number: string,
 }
-
 
 export type UserFormValues = GeneralInfo & AddressInfo & MedicalInfo & { terms: boolean };;
 

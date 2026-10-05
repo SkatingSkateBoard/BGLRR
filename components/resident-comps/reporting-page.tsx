@@ -151,22 +151,6 @@ const categories: EmergencyCategory[] = [
       </svg>
     ),
   },
-  {
-    id: "Schedule Blotter",
-    tone: "blotter",
-    label: "Blotter",
-    icon: (cut) => (
-      <svg viewBox="0 0 24 24" aria-hidden="true" className="w-[64%] h-[64%] overflow-visible drop-shadow-[0_2px_2px_rgba(0,0,0,0.25)]">
-        <rect x="4" y="3" width="14" height="18" rx="2.2" fill="#fff" />
-        <rect x="8" y="7" width="7" height="3.2" rx="0.8" className={cut} />
-        <g className={cut} strokeWidth="1.6" strokeLinecap="round">
-          <line x1="8" y1="13" x2="15" y2="13" />
-          <line x1="8" y1="16.5" x2="13" y2="16.5" />
-        </g>
-        <path fill="#fff" d="M19.2 6.5l2.3 1-2.8 9.8-1.6.5-.2-1.7z" />
-      </svg>
-    ),
-  },
 ];
 export default function ReportingDashboard() {
   const router = useRouter();
@@ -268,16 +252,18 @@ export default function ReportingDashboard() {
 
           {/* Matrix Grid */}
           <div className="grid grid-cols-2 gap-x-6 gap-y-[1.6rem]">
-            {categories.map((cat) => {
+            {categories.map((cat, index) => {
               const currentTone = toneStyles[cat.tone];
               const isPressed = pressedId === cat.id;
-
               return (
                 <button
                   key={cat.id}
                   type="button"
                   disabled={isSubmitting}
-                  className="group flex flex-col items-center gap-3 cursor-pointer [-webkit-tap-highlight-color:transparent] focus-visible:outline-none"
+                  /* Added hover:-translate-y-1 and transition-transform for the lift-up animation */
+                  className={`group flex flex-col items-center gap-3 cursor-pointer [-webkit-tap-highlight-color:transparent] focus-visible:outline-none transition-transform duration-200 hover:-translate-y-1 active:translate-y-0 ${
+                    categories.length === 5 && index === 4 ? "col-span-2 mx-auto w-1/2" : ""
+                  }`}
                   onClick={() => handleCategoryClick(cat.id)}
                   onPointerDown={() => setPressedId(cat.id)}
                   onPointerUp={() => setPressedId(null)}
@@ -291,7 +277,7 @@ export default function ReportingDashboard() {
                   }}
                 >
                   <span
-                    className={`relative w-full aspect-[1.22/1] grid place-items-center rounded-[26px] border bg-gradient-to-br transition-all duration-140 before:content-[''] before:absolute before:inset-0 before:rounded-inherit before:bg-gradient-to-b before:from-white/22 before:to-transparent before:to-[45%] before:pointer-events-none group-hover:brightness-104 group-focus-visible:outline group-focus-visible:outline-3 group-focus-visible:outline-[#111] group-focus-visible:outline-offset-[3px] motion-reduce:transition-none ${
+                    className={`relative w-full aspect-[1.22/1] ${categories.length === 5 && index === 4 ? "max-w-[172px]" : ""} grid place-items-center rounded-[26px] border bg-gradient-to-br transition-all duration-140 before:content-[''] before:absolute before:inset-0 before:rounded-inherit before:bg-gradient-to-b before:from-white/22 before:to-transparent before:to-[45%] before:pointer-events-none group-hover:brightness-104 group-focus-visible:outline group-focus-visible:outline-3 group-focus-visible:outline-[#111] group-focus-visible:outline-offset-[3px] motion-reduce:transition-none ${
                       currentTone.border
                     } ${currentTone.bgGradient} ${
                       isPressed
