@@ -17,7 +17,6 @@ import { ErrorBox } from "@/components/resident-comps/register-comps/ErrorInfo"
 import { useRegistrationForm } from "@/components/context/RegistrationContext"
 
 import {useRouter} from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
 
 const inputClass =
   "text-[12px] h-13 border-1 min-w-0 pl-3 border-gray-150 rounded-[2vw] md:rounded-md focus:outline-hidden"
@@ -39,7 +38,6 @@ export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ su
   const { formData, errors, updateForm, validateStep } = useRegistrationForm()
 
   const router = useRouter();
-  const supabase = createClient();
 
   const [isLoading, setIsLoading] = React.useState(false) 
 
@@ -160,7 +158,6 @@ export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ su
      if (!outerApi || isLoading) return
     setShowError(false)
 
-
     const inner = getInner()
     if (inner?.canScrollNext()) {
       inner.scrollNext()
@@ -234,7 +231,7 @@ export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ su
               <CarouselItem className="flex flex-col gap-2 w-full">
                 <div className="flex flex-row gap-2">
                   <InputField id="age" name="age" placeholder="Age" className="flex-2"
-                    value={formData.age?.toString() ?? ""} onChange={(v) => updateForm({ age: v === "" ? "" : Number(v) })} error={errors.age}  />
+                    value={formData.age?.toString() ?? ""} onChange={(v) => {const cleanValue = v.replace(/\D/g, ""); updateForm({ age: cleanValue === "" ? "" : Number(cleanValue) });}}  />
                   <DropdownField id="sex" name="sex" placeholder="Sex" className="flex-1"
                     options={["MALE", "FEMALE"]} value={formData.sex || ""}
                     onChange={(v) => updateForm({ sex: v as "male" | "female" })} error={errors.sex}  />
