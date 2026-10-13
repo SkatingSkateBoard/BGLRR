@@ -41,6 +41,8 @@ export function RegisteredScreen() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [selectedResident, setSelectedResident] = useState<Resident | null>(null);
+  const [reason, setReason] = useState<string>("");
+  const [isRejecting, setIsRejecting] = useState(false);
 
   const fetchPendingResidents = async () => {
     try {
@@ -75,17 +77,19 @@ export function RegisteredScreen() {
     fetchPendingResidents();
   }, []);
 
-  const handleStatusChange = async (id: number, actionType: "approve" | "reject") => {
+  const handleStatusChange = async (id: number, actionType: "approve" | "reject", reason?: string) => {
     setBusyId(id);
     try {
       if (actionType === "approve") {
         await approveResident(id);
       } else {
-        await rejectResident(id);
+        await rejectResident(id, reason || "");
       }
       setResidents((prev) => prev.filter((r) => r.id !== id));
       if (selectedResident?.id === id) {
         setSelectedResident(null);
+        setIsRejecting(false);
+        setReason("");
       }
     } catch (err) {
       alert(`Failed to complete action: ${err}`);
@@ -94,7 +98,7 @@ export function RegisteredScreen() {
     }
   };
 
-  return (
+   return (
     <main className="min-h-screen p-5 sm:p-8 md:p-12 bg-gray-50 text-gray-900">
       <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8">
         
@@ -122,7 +126,11 @@ export function RegisteredScreen() {
               {residents.map((resident) => (
                 <article
                   key={resident.id}
-                  onClick={() => setSelectedResident(resident)}
+                  onClick={() => {
+                    setSelectedResident(resident);
+                    setIsRejecting(false);
+                    setReason("");
+                  }}
                   className={`flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-4 p-5 border rounded-xl bg-white shadow-sm cursor-pointer transition-all hover:border-blue-400 ${
                     selectedResident?.id === resident.id ? "border-blue-500 ring-2 ring-blue-500/10" : "border-gray-200"
                   }`}
@@ -143,7 +151,6 @@ export function RegisteredScreen() {
           )}
         </section>
 
-        {/* Detailed File Inspector View */}
         <section className="w-full lg:w-[450px] shrink-0">
           {selectedResident ? (
             <div className="sticky top-6 p-6 border border-gray-200 rounded-2xl bg-white shadow-sm">
@@ -157,22 +164,28 @@ export function RegisteredScreen() {
                     {selectedResident.suffix ? ` ${selectedResident.suffix}` : ""}
                   </h2>
                 </div>
-                <button onClick={() => setSelectedResident(null)} className="text-xs font-bold text-gray-400 hover:text-gray-600">
+                <button 
+                  onClick={() => {
+                    setSelectedResident(null);
+                    setIsRejecting(false);
+                    setReason("");
+                  }} 
+                  className="text-xs font-bold text-gray-400 hover:text-gray-600"
+                >
                   Close
                 </button>
               </div>
 
               <div className="space-y-4 mb-6">
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Residennt Info</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Resident Info</h4>
                   <ul className="list-none p-0 m-0 space-y-1 text-sm font-semibold text-gray-800">
                     <li><span className="text-gray-400 font-normal">Age:</span> {selectedResident.age ?? "N/A"}</li>
                     <li><span className="text-gray-400 font-normal">Sex:</span> {selectedResident.gender || "N/A"}</li>
                     <li><span className="text-gray-400 font-normal">Phone:</span> {selectedResident.phone_number || "N/A"}</li>
                   </ul>
                 </div>
-
-                <div className="pt-4 border-t border-gray-100">
+                                <div className="pt-4 border-t border-gray-100">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Address Info</h4>
                   {selectedResident.address_info ? (
                     <div className="space-y-1 text-sm font-semibold text-gray-800">
@@ -203,22 +216,61 @@ export function RegisteredScreen() {
                   )}
                 </div>
               </div>
-
-              <div className="flex gap-3 pt-4 border-t border-gray-100">
-                <button
-                  className="flex-1 px-4 py-2.5 rounded-xl text-white font-bold disabled:opacity-50 bg-blue-600 hover:bg-blue-700 shadow-sm"
-                  disabled={busyId === selectedResident.id}
-                  onClick={() => handleStatusChange(selectedResident.id, "approve")}
-                >
-                  {busyId === selectedResident.id ? "Working…" : "Approve"}
-                </button>
-                <button
-                  className="flex-1 px-4 py-2.5 rounded-xl text-white font-bold disabled:opacity-50 bg-red-600 hover:bg-red-700 shadow-sm"
-                  disabled={busyId === selectedResident.id}
-                  onClick={() => handleStatusChange(selectedResident.id, "reject")}
-                >
-                  {busyId === selectedResident.id ? "Working…" : "Reject"}
-                </button>
+              {/* Action Buttons & Rejection Panel Form */}
+              <div className="pt-4 border-t border-gray-100">
+                {isRejecting ? (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-red-500 mb-1.5">
+                        Reason for Rejection
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
+                        placeholder="Provide details on why this application was denied..."
+                        className="w-full p-2.5 text-sm font-medium border border-gray-200 rounded-xl bg-gray-50 text-gray-900 focus:outline-none focus:border-red-400 focus:bg-white resize-none"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsRejecting(false);
+                          setReason("");
+                        }}
+                        className="px-3 py-2 text-xs font-bold text-gray-500 hover:text-gray-700 bg-gray-100 rounded-lg"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busyId === selectedResident.id || !reason.trim()}
+                        onClick={() => handleStatusChange(selectedResident.id, "reject", reason)}
+                        className="flex-1 py-2 rounded-xl text-white text-sm font-bold bg-red-600 hover:bg-red-700 disabled:opacity-50"
+                      >
+                        {busyId === selectedResident.id ? "Working…" : "Confirm Rejection"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex gap-3">
+                    <button
+                      className="flex-1 px-4 py-2.5 rounded-xl text-white font-bold disabled:opacity-50 bg-blue-600 hover:bg-blue-700 shadow-sm"
+                      disabled={busyId === selectedResident.id}
+                      onClick={() => handleStatusChange(selectedResident.id, "approve")}
+                    >
+                      {busyId === selectedResident.id ? "Working…" : "Approve"}
+                    </button>
+                    <button
+                      className="flex-1 px-4 py-2.5 rounded-xl text-white font-bold disabled:opacity-50 bg-red-600 hover:bg-red-700 shadow-sm"
+                      disabled={busyId === selectedResident.id}
+                      onClick={() => setIsRejecting(true)}
+                    >
+                      Reject
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -233,3 +285,4 @@ export function RegisteredScreen() {
     </main>
   );
 }
+

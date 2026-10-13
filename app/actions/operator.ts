@@ -45,7 +45,6 @@ export async function acceptEmergencyRequest(requestId: number) {
       return { success: false, error: "This emergency request has already been claimed by another operator." };
     }
 
-    // Establish room identifiers
     const roomName = `emergency-${requestId}`;
     const participantName = `Operator-${operator.username}`; 
 
