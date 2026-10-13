@@ -232,8 +232,8 @@ export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ su
                 <div className="flex flex-row gap-2">
                   <InputField id="age" name="age" placeholder="Age" className="flex-2"
                     value={formData.age?.toString() ?? ""} onChange={(v) => {const cleanValue = v.replace(/\D/g, ""); updateForm({ age: cleanValue === "" ? "" : Number(cleanValue) });}}  />
-                  <DropdownField id="sex" name="sex" placeholder="Sex" className="flex-1"
-                    options={["MALE", "FEMALE"]} value={formData.sex || ""}
+                  <DropdownField id="sex" name="sex" placeholder="Sex" className="flex-1 capitalize"
+                    options={["male", "female"]} value={formData.sex || ""}
                     onChange={(v) => updateForm({ sex: v as "male" | "female" })} error={errors.sex}  />
                 </div>
                 <InputField id="password" name="password" placeholder="Password" type="password" className="w-full"
