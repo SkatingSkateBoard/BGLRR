@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     dir: "auto",
     lang: "en-US",
     name: "BGLRR Frontend",
-    short_name: "BGLRRFrontend",
-    description: "This is the frontend PWA for BGLRR",
+    short_name: "BGLRR",
+    description: "This is the resident PWA for emergency reporting in Barangay Greater Lagro",
     theme_color: "#000000",
     background_color: "#000000",
     
