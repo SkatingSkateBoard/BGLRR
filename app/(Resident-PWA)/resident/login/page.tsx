@@ -40,8 +40,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/");
-      router.refresh();
+      window.location.href = "/"; 
     } catch (err) {
       setLoading(false);
       setError("Something went wrong. Please try again.");

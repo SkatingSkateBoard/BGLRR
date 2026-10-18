@@ -37,7 +37,21 @@ export async function login(email: string, password: string) {
 //operator todo
 
 export async function operatorLogin(identifier: string, password: string) {
+  const supabase = await createClient()
 
+  const { error } = await supabase.auth.signInWithPassword({
+    email: identifier,
+    password,
+  })
+
+  if (error) {
+    return {
+      success: false,
+      error: error.message,
+    }
+  }
+
+  return { success: true }
 }
 
 export async function isResidentVerified() {
