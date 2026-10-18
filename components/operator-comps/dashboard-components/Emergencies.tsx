@@ -39,7 +39,7 @@ export function EmergenciesScreen() {
     `
     const emergencyHeaderContainerClass =
         `flex justify-start shrink-0
-        rounded-t-lg bg-white w-full h-12 mt-7 items-center divide-x-2 divide-gray-200
+        rounded-t-lg bg-white w-full h-12 mt-4 items-center divide-x-2 divide-gray-200
         bg-linear-to-t from-blue-900/5 to-white border-gray-300 border-b-2 border-r-2 shadow-lg/3
         px-7
         `
@@ -245,9 +245,9 @@ export function EmergenciesScreen() {
                 ) : pagedItems.length === 0 ? (
                     <div className="p-7 text-center text-gray-400">No requests found inside.</div>
                 ) : (
-                    <div className="flex flex-col w-full divide-y divide-gray-100">
+                    <div className="flex flex-col w-full divide-y">
                         {pagedItems.map((item) => (
-                            <div key={item.id} className="p-4 flex justify-between items-center bg-white hover:bg-gray-50">
+                            <div key={item.id} className="flex justify-between items-center bg-white hover:bg-gray-50">
                                 <EmergencyItem
                                     status={item.status === "pending" ? "pending" : "active"}
                                     item={item}
