@@ -12,6 +12,5 @@ const withPWA = withPWAInit({
 const nextConfig = {
   // Your normal Next.js configuration rules go here (e.g., images, rewrites)
     turbopack: {},
-    allowedDevOrigins: ['192.168.56.1','192.168.254.144'],
 };
 export default withPWA(nextConfig);
