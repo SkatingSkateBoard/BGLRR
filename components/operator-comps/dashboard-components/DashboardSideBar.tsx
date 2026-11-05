@@ -57,7 +57,7 @@ export function DashboardSideBar() {
                     <div className={`${headerSidebarClass}`}>
                         <p className={sideBarSectionTitleClass}>Pending</p>
                         <SideBarItem id="residents" label="Residents" icon={UserSearch} selected={selected} onSelect={setSelected} itemClass={sideBarItemClass} />
-                        <SideBarItem id="appointment" label="Blotter Appointments" icon={CalendarClock} selected={selected} onSelect={setSelected} itemClass={sideBarItemClass} />
+                        {/* <SideBarItem id="appointment" label="Blotter Appointments" icon={CalendarClock} selected={selected} onSelect={setSelected} itemClass={sideBarItemClass} /> */}
                     </div>
 
                     {/* TOOL */}
