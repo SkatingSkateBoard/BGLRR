@@ -5,7 +5,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { AccessToken } from "livekit-server-sdk";
 
-import {startAudioRecording} from "@/app/actions/livekit";
 
 // TypeScript definitions matching your relational tables
 type Operator = {
@@ -93,26 +92,7 @@ export async function acceptEmergencyRequest(requestId: number) {
     });
 
     const token = await at.toJwt();
-
-    startAudioRecording(requestId)
-  .then(async (recResult) => {
-    if (recResult.success && recResult.egressId) {
-      const { error: dbError } = await supabase
-        .from("tbl_emergency_req")
-        .update({ recorded_egress_id: recResult.egressId })
-        .eq("id", requestId);
-        
-      if (dbError) console.error("Database update error:", dbError);
-    } else {
-      // ADD THIS: Captures errors returned by the function itself
-      console.error("Egress initialization returned failure payload:", recResult.error);
-    }
-  })
-  .catch((fatalErr) => {
-    // ADD THIS: Captures real code crashes (like undefined variables)
-    console.error("❌ Fatal crash during background Egress execution promise:", fatalErr);
-  });
-
+    
     return {
       success: true,
       roomId: roomName,

@@ -6,6 +6,7 @@ import { LiveKitRoom, RoomAudioRenderer, useParticipants, useLocalParticipant, u
 import { createClient } from "@/utils/supabase/client";
 import {endLiveKitRoom} from "@/app/actions/livekit";
 import styles from "./page.module.css";
+import {useCallRecorder} from "@/app/hooks/useCallRecorder";
 
 /*---------------------------------------------------------------------------------------------------------------------------------------------------*/
 
@@ -74,30 +75,15 @@ function OperatorCallInterface({ roomId }: { roomId: string }) {
   const router = useRouter();
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
   const [time, setTime] = useState(0);
-  const [activeEgressId, setActiveEgressId] = useState<string | null>(null);
+  const { start, stopAndUpload } = useCallRecorder(room, numericRequestId);
+  useEffect(() => {
+    if (room?.state === "connected") start();
+  }, [room?.state, start]);
 
   useEffect(() => {
     const timer = setInterval(() => setTime((p) => p + 1), 1000);
     return () => clearInterval(timer);
   }, []);
-
-   useEffect(() => {
-    async function getRecordingTicket() {
-      if (!numericRequestId) return;
-      
-      const { data, error } = await supabase
-        .from("tbl_emergency_req")
-        .select("recorded_egress_id")
-        .eq("id", numericRequestId)
-        .single();
-
-      if (!error && data?.recorded_egress_id) {
-        // Save it to our state variable so handleTerminate can use it below
-        setActiveEgressId(data.recorded_egress_id);
-      }
-    }
-    getRecordingTicket();
-  }, [numericRequestId]);
 
   const isMuted = !isMicrophoneEnabled; 
 
@@ -121,10 +107,12 @@ function OperatorCallInterface({ roomId }: { roomId: string }) {
 
       // 2. Await the server action to cleanly stop the egress recording and delete the room
       // We pass the activeEgressId state variable that we pulled from Supabase on mount
-      await endLiveKitRoom(numericRequestId, activeEgressId);
-      
-      // 3. Cleanly close the local browser WebRTC voice sockets
-      await room.disconnect();
+      await stopAndUpload();
+
+      if (room) {
+       await room.disconnect();
+      }
+      await endLiveKitRoom(numericRequestId);
       
       // 4. Safely redirect the operator back to their dashboard panel view
       router.push("/operator/dashboard"); 
