@@ -1,5 +1,3 @@
-//creation of operators just a random helper prob wont be used on actual apps
-
 "use server";
 
 import { createClient } from '@supabase/supabase-js'
