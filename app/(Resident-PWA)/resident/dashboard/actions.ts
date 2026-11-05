@@ -1,3 +1,5 @@
+//MAIN LOGIC FOR CREATING EMERGENCY REQUESTS ON RESIDENT
+
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
@@ -10,7 +12,6 @@ type EmergencyData = {
 } | null;
 
 export async function createEmergencyRequest(category: string) {
-  // 1. GLOBAL SAFETY NET: Catches absolutely any runtime panic safely
   try {
     const supabase = await createClient();
 
@@ -81,7 +82,7 @@ export async function createEmergencyRequest(category: string) {
 
     await livekitApi.room.createRoom({
       name: roomName,
-      emptyTimeout: 1200,
+      emptyTimeout: 1200, //20 min empty and end when theres noone
       maxParticipants: 2,
     });
 

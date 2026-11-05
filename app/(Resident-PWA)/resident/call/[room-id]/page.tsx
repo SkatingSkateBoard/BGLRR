@@ -22,6 +22,7 @@ export default function CallPage({ params }: PageProps) {
   
   const token = searchParams.get("token");
   const serverUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || "ws://localhost:7880";
+  const router = useRouter();
 
   if (!token) {
     return (
@@ -41,6 +42,9 @@ export default function CallPage({ params }: PageProps) {
         token={token}
         serverUrl={serverUrl}
         connectOptions={{ autoSubscribe: true }}
+        onDisconnected={() => {
+          router.push("/resident/dashboard"); 
+        }}
       >
         <CallInterface roomId={roomId} />
         <RoomAudioRenderer />

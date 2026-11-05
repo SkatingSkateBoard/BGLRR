@@ -1,9 +1,10 @@
 "use client";
 
-import React, { use, useState, useEffect } from "react";
+import { use, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { LiveKitRoom, RoomAudioRenderer, useParticipants, useLocalParticipant, useRoomContext } from "@livekit/components-react";
-import { createClient } from "@/utils/supabase/client"; 
+import { createClient } from "@/utils/supabase/client";
+import {endLiveKitRoom} from "@/app/actions/livekit";
 import styles from "./page.module.css";
 
 /*---------------------------------------------------------------------------------------------------------------------------------------------------*/
@@ -36,7 +37,6 @@ export default function OperatorCallPage({ params }: { params: Promise<{ "room-i
   const { "room-id": roomId } = use(params);
   const token = searchParams.get("token");
   const serverUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || "ws://localhost:7880";
-
   if (!token) {
     return (
       <div className={`${styles.authError} flex h-screen items-center justify-center p-4`}>
@@ -66,17 +66,38 @@ export default function OperatorCallPage({ params }: { params: Promise<{ "room-i
 }
 
 function OperatorCallInterface({ roomId }: { roomId: string }) {
+  const supabase = createClient();
+  const numericRequestId = parseInt(roomId.split("-")[1], 10);
+
   const participants = useParticipants();
   const room = useRoomContext();
   const router = useRouter();
-  const supabase = createClient();
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
   const [time, setTime] = useState(0);
+  const [activeEgressId, setActiveEgressId] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => setTime((p) => p + 1), 1000);
     return () => clearInterval(timer);
   }, []);
+
+   useEffect(() => {
+    async function getRecordingTicket() {
+      if (!numericRequestId) return;
+      
+      const { data, error } = await supabase
+        .from("tbl_emergency_req")
+        .select("recorded_egress_id")
+        .eq("id", numericRequestId)
+        .single();
+
+      if (!error && data?.recorded_egress_id) {
+        // Save it to our state variable so handleTerminate can use it below
+        setActiveEgressId(data.recorded_egress_id);
+      }
+    }
+    getRecordingTicket();
+  }, [numericRequestId]);
 
   const isMuted = !isMicrophoneEnabled; 
 
@@ -93,23 +114,27 @@ function OperatorCallInterface({ roomId }: { roomId: string }) {
     await localParticipant.setMicrophoneEnabled(isMuted);
   };
 
-  const handleTerminate = () => {
-    room?.disconnect();
-    router.push("/operator/dashboard"); 
-  };
-
-  const handleLogout = async () => {
-    const confirmLogout = window.confirm("Are you sure you want to log out? This will disconnect the active call feed.");
-    if (!confirmLogout) return;
-
+    const handleTerminate = async () => {
     try {
-      room?.disconnect();
-      await supabase.auth.signOut();
+      // 1. Extract the clean integer request ID from the room name
+      const numericRequestId = parseInt(roomId.split("-")[1], 10);
+
+      // 2. Await the server action to cleanly stop the egress recording and delete the room
+      // We pass the activeEgressId state variable that we pulled from Supabase on mount
+      await endLiveKitRoom(numericRequestId, activeEgressId);
+      
+      // 3. Cleanly close the local browser WebRTC voice sockets
+      await room.disconnect();
+      
+      // 4. Safely redirect the operator back to their dashboard panel view
       router.push("/operator/dashboard"); 
-    } catch (error) {
-      console.error("Sign out process experienced a fault:", error);
+    } catch (err) {
+      console.error("Failed to execute clean call termination sequence:", err);
+      // Safety net fallback redirect if anything fails so the operator isn't stuck on screen
+      router.push("/operator/dashboard"); 
     }
   };
+
   return (
     /* min-h-screen instead of h-screen so the taller Session Info card can grow the page instead of overflowing */
     <div className={`${styles.frame} flex flex-col min-h-screen max-w-5xl mx-auto p-6 md:p-10 justify-between`}>
