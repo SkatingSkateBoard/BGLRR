@@ -68,14 +68,14 @@ export default function OperatorCallPage({ params }: { params: Promise<{ "room-i
 
 function OperatorCallInterface({ roomId }: { roomId: string }) {
   const supabase = createClient();
-  const numericRequestId = parseInt(roomId.split("-")[1], 10);
+  const requestId = parseInt(roomId.split("-")[1], 10);
 
   const participants = useParticipants();
   const room = useRoomContext();
   const router = useRouter();
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
   const [time, setTime] = useState(0);
-  const { start, stopAndUpload } = useCallRecorder(room, numericRequestId);
+  const { start, stopAndUpload } = useCallRecorder(room, requestId);
   useEffect(() => {
     if (room?.state === "connected") start();
   }, [room?.state, start]);
@@ -102,15 +102,15 @@ function OperatorCallInterface({ roomId }: { roomId: string }) {
 
     const handleTerminate = async () => {
     try {
-      // 1. Extract the clean integer request ID from the room name
-      const numericRequestId = parseInt(roomId.split("-")[1], 10);
-      await stopAndUpload();
-      
+     
+      const uploadedStoragePath = await stopAndUpload(); 
+      console.log("Uploaded file path string captured on frontend:", uploadedStoragePath);
+
+    // 3. PASS THAT CAPTURED PATH directly to your server action!
+    await endLiveKitRoom(requestId, uploadedStoragePath as string);
       if (room) {
        await room.disconnect();
       }
-      await endLiveKitRoom(numericRequestId);
-      
       router.push("/operator/dashboard"); 
     } catch (err) {
       console.error("Failed to execute clean call termination sequence:", err);

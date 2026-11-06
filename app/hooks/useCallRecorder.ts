@@ -4,11 +4,10 @@ import { useRef, useCallback } from "react";
 import { Room, RoomEvent, RemoteTrack, Track } from "livekit-client";
 import { createClient } from "@/utils/supabase/client";
 
-
 export function useCallRecorder(room: Room | undefined, requestId: number) {
   const ctxRef = useRef<AudioContext | null>(null);
   const destRef = useRef<MediaStreamAudioDestinationNode | null>(null);
-  const mergerRef = useRef<ChannelMergerNode | null>(null); // Reference to keep the channel splitter intact
+  const mergerRef = useRef<ChannelMergerNode | null>(null); 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const addedRef = useRef<Set<string>>(new Set());
@@ -136,6 +135,8 @@ export function useCallRecorder(room: Room | undefined, requestId: number) {
 
     const path = `request-${requestId}/${Date.now()}.${ext}`;
     const supabase = createClient();
+    
+    // 1. Upload the stereo recording directly to your Supabase Storage Bucket
     const { error } = await supabase.storage
       .from("call-recordings")
       .upload(path, blob, { contentType: mimeRef.current });
@@ -145,18 +146,10 @@ export function useCallRecorder(room: Room | undefined, requestId: number) {
       return null;
     }
 
-     const res = await fetch("/api/transcribe", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ requestId, storagePath: path }),
-    });
-
-    if (!res.ok) {
-      console.error("Transcription request failed:", await res.text());
-    }
-    
+    // 2. FIXED: Removed the old HTTP api endpoint fetch request entirely.
+    // Simply pass the storage path string string directly back to the component context.
     return path;
-  }, [requestId]);
+  }, [requestId, room]);
 
   return { start, stopAndUpload };
 }
