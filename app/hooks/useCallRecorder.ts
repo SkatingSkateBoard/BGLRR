@@ -3,75 +3,113 @@
 import { useRef, useCallback } from "react";
 import { Room, RoomEvent, RemoteTrack, Track } from "livekit-client";
 import { createClient } from "@/utils/supabase/client";
-import { saveRecordingPath } from "@/app/actions/livekit";
+
 
 export function useCallRecorder(room: Room | undefined, requestId: number) {
   const ctxRef = useRef<AudioContext | null>(null);
   const destRef = useRef<MediaStreamAudioDestinationNode | null>(null);
+  const mergerRef = useRef<ChannelMergerNode | null>(null); // Reference to keep the channel splitter intact
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const addedRef = useRef<Set<string>>(new Set());
   const mimeRef = useRef("audio/webm");
   const cleanupRef = useRef<(() => void) | null>(null);
 
-  // Connects one audio track into the shared mix (each track only once)
-  const addTrack = (mst: MediaStreamTrack) => {
-    if (!ctxRef.current || !destRef.current) return;
+  // Connects track into a specific channel (0 = Left/Operator, 1 = Right/Resident)
+  const addTrack = useCallback((mst: MediaStreamTrack, channelIndex: number) => {
+    if (!ctxRef.current || !mergerRef.current) return;
     if (addedRef.current.has(mst.id)) return;
+    
+    // Protect against dead tracks
+    if (mst.readyState === "ended") return;
+
     addedRef.current.add(mst.id);
-    ctxRef.current
-      .createMediaStreamSource(new MediaStream([mst]))
-      .connect(destRef.current);
-  };
+    try {
+      const source = ctxRef.current.createMediaStreamSource(new MediaStream([mst]));
+      // Connects output 0 of source to input channelIndex of the merger node
+      source.connect(mergerRef.current, 0, channelIndex);
+    } catch (e) {
+      console.error(`Failed to connect channel ${channelIndex}:`, e);
+      addedRef.current.delete(mst.id); 
+    }
+  }, []);
 
   const start = useCallback(async () => {
     if (!room || recorderRef.current) return;
 
-    // 1. One AudioContext = the mixer. Everything connects to one destination.
-    const ctx = new AudioContext();
+    // 1. Force 16kHz layout directly at the mixer level for pristine Deepgram accuracy
+    const ctx = new AudioContext({ sampleRate: 16000 });
     await ctx.resume();
     ctxRef.current = ctx;
-    destRef.current = ctx.createMediaStreamDestination();
 
-    // 2. Add tracks that already exist: operator's mic + resident's audio
+    // 2. Setup destination to explicitly support 2 discrete channels (Stereo)
+    const dest = ctx.createMediaStreamDestination();
+    dest.channelCount = 2;
+    dest.channelCountMode = "explicit";
+    dest.channelInterpretation = "speakers";
+    destRef.current = dest;
+
+    // 3. Create the Channel Merger Node
+    const merger = ctx.createChannelMerger(2);
+    merger.connect(dest);
+    mergerRef.current = merger;
+
+    // 4. Track local user (Operator -> Channel 0 / Left)
     room.localParticipant.audioTrackPublications.forEach((p) => {
-      if (p.track?.mediaStreamTrack) addTrack(p.track.mediaStreamTrack);
+      if (p.track?.mediaStreamTrack) addTrack(p.track.mediaStreamTrack, 0);
     });
+
+    // 5. Track already existing remote user (Resident -> Channel 1 / Right)
     room.remoteParticipants.forEach((participant) =>
       participant.audioTrackPublications.forEach((p) => {
-        if (p.track?.mediaStreamTrack) addTrack(p.track.mediaStreamTrack);
+        if (p.track?.mediaStreamTrack) addTrack(p.track.mediaStreamTrack, 1);
       })
     );
 
-    // 3. Add tracks that show up later
+    // 6. Listener for any audio tracks arriving dynamically later
     const onSub = (track: RemoteTrack) => {
-      if (track.kind === Track.Kind.Audio) addTrack(track.mediaStreamTrack);
+      if (track.kind === Track.Kind.Audio && track.mediaStreamTrack) {
+        // Since the resident is remote to this client, they go to Channel 1
+        addTrack(track.mediaStreamTrack, 1);
+      }
     };
+    
     const onLocal = (pub: any) => {
-      if (pub.track?.kind === Track.Kind.Audio) addTrack(pub.track.mediaStreamTrack);
+      if (pub.track?.kind === Track.Kind.Audio && pub.track?.mediaStreamTrack) {
+        // Local participant is the operator, they go to Channel 0
+        addTrack(pub.track.mediaStreamTrack, 0);
+      }
     };
+    
     room.on(RoomEvent.TrackSubscribed, onSub);
     room.on(RoomEvent.LocalTrackPublished, onLocal);
+    
     cleanupRef.current = () => {
       room.off(RoomEvent.TrackSubscribed, onSub);
       room.off(RoomEvent.LocalTrackPublished, onLocal);
     };
 
-    // 4. Record the mixed stream
-    mimeRef.current = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-      ? "audio/webm;codecs=opus"
-      : "audio/mp4"; // Safari
+    // 7. Check browser streaming types (Ensures compatibility for Safari vs Chrome)
+    if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
+      mimeRef.current = "audio/webm;codecs=opus";
+    } else if (MediaRecorder.isTypeSupported("audio/mp4;codecs=mp4a.40.2")) {
+      mimeRef.current = "audio/mp4;codecs=mp4a.40.2"; 
+    } else {
+      mimeRef.current = "audio/mp4";
+    }
 
     const recorder = new MediaRecorder(destRef.current.stream, {
       mimeType: mimeRef.current,
-      audioBitsPerSecond: 32000,
+      audioBitsPerSecond: 32000, 
     });
+    
     recorder.ondataavailable = (e) => {
-      if (e.data.size) chunksRef.current.push(e.data);
+      if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
     };
+    
     recorder.start(5000);
     recorderRef.current = recorder;
-  }, [room]);
+  }, [room, addTrack]);
 
   const stopAndUpload = useCallback(async () => {
     const recorder = recorderRef.current;
@@ -86,8 +124,10 @@ export function useCallRecorder(room: Room | undefined, requestId: number) {
     cleanupRef.current?.();
     cleanupRef.current = null;
     addedRef.current.clear();
+    
     await ctxRef.current?.close();
     ctxRef.current = null;
+    mergerRef.current = null;
 
     const ext = mimeRef.current.startsWith("audio/mp4") ? "m4a" : "webm";
     const blob = new Blob(chunksRef.current, { type: mimeRef.current });
@@ -105,7 +145,16 @@ export function useCallRecorder(room: Room | undefined, requestId: number) {
       return null;
     }
 
-    await saveRecordingPath(requestId, path);
+     const res = await fetch("/api/transcribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requestId, storagePath: path }),
+    });
+
+    if (!res.ok) {
+      console.error("Transcription request failed:", await res.text());
+    }
+    
     return path;
   }, [requestId]);
 

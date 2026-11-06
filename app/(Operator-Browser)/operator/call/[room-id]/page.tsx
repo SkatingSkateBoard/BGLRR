@@ -104,17 +104,13 @@ function OperatorCallInterface({ roomId }: { roomId: string }) {
     try {
       // 1. Extract the clean integer request ID from the room name
       const numericRequestId = parseInt(roomId.split("-")[1], 10);
-
-      // 2. Await the server action to cleanly stop the egress recording and delete the room
-      // We pass the activeEgressId state variable that we pulled from Supabase on mount
       await stopAndUpload();
-
+      
       if (room) {
        await room.disconnect();
       }
       await endLiveKitRoom(numericRequestId);
       
-      // 4. Safely redirect the operator back to their dashboard panel view
       router.push("/operator/dashboard"); 
     } catch (err) {
       console.error("Failed to execute clean call termination sequence:", err);

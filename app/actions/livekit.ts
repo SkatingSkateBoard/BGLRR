@@ -8,16 +8,6 @@ import {
 
 import {createClient} from "@/utils/supabase/server";
 
-export async function saveRecordingPath(requestId: number, path: string) {
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("tbl_emergency_req")
-    .update({ recorded_audio_path: path })
-    .eq("id", requestId);
-  return { success: !error, error: error?.message };
-}
-
-
 export async function endLiveKitRoom(requestId: number) {
   try {
     const supabase = await createClient();
