@@ -79,7 +79,6 @@ const toneStyles: Record<
     cutClass: "fill-[#c98a0a] stroke-[#c98a0a]",
   },
 };
-
 const categories: EmergencyCategory[] = [
   {
     id: "fire",
@@ -154,12 +153,20 @@ const categories: EmergencyCategory[] = [
 ];
 export default function ReportingDashboard() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // --- Pre-existing Codebase States ---
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [pressedId, setPressedId] = useState<string | null>(null);
   const [reportError, setReportError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // --- Temporary Layout Form Buffers ---
+  const [chosenCategory, setChosenCategory] = useState<string | null>(null);
+  const [description, setDescription] = useState("");
+  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -171,14 +178,50 @@ export default function ReportingDashboard() {
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
+  // 1. Core Category Event Handler (Maintains strict original function signature)
   const handleCategoryClick = async (category: string) => {
-    if (isSubmitting) return;
+    setChosenCategory(category);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""; 
+      fileInputRef.current.click(); // Triggers device native system capture sheet intent
+    }
+  };
+
+  // Convert raw media selector events to UI Base64 preview components
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setCapturedPhoto(reader.result as string);
+      setIsPopupOpen(true); 
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRetake = () => {
+    setCapturedPhoto(null);
+    setIsPopupOpen(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  // 2. Form Submission Management
+  const handleFinalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting || !chosenCategory) return;
 
     setIsSubmitting(true);
     setReportError(null);
 
     try {
-      const result = await createEmergencyRequest(category);
+      // 💡 NOTE: description and capturedPhoto are saved locally in component state.
+      // Once you support multi-param objects on your backend, update this action call to pass them down:
+      // eg: const result = await createEmergencyRequest({ category: chosenCategory, description, photo: capturedPhoto });
+      const result = await createEmergencyRequest(chosenCategory);
+      
       if (result.success) {
         router.push(`/resident/call/${result.roomId}?token=${result.livekitToken}`);
       }
@@ -198,9 +241,19 @@ export default function ReportingDashboard() {
     await logout();
   };
   return (
-    <div className="h-[100vh] h-[100dvh] overflow-y-auto overscroll-contain flex justify-center text-[#0a0a0a] bg-white motion-reduce:transition-none">
-      <div className="w-full max-w-[420px] min-h-max px-[1.4rem] pb-8 flex flex-col">
+    <div className="h-[100vh] h-[100dvh] overflow-y-auto overscroll-contain flex justify-center text-[#0a0a0a] bg-white motion-reduce:transition-none relative">
+      <div className="w-full max-w-[420px] min-h-max px-[1.4rem] pb-8 flex flex-col relative">
         
+        {/* 💡 Native HTML Media Capture Hook Node */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          accept="image/*"
+          capture="environment" 
+          className="hidden"
+          onChange={handleFileChange}
+        />
+
         {/* Header Block with Dropdown */}
         <header className="relative pt-4 z-10" ref={menuRef}>
           <button
@@ -220,7 +273,7 @@ export default function ReportingDashboard() {
 
           {/* Action Dropdown Menu */}
           <div
-            className={`absolute top-[calc(100%+4px)] left-0 min-width-[170px] p-1.5 rounded-[16px] border border-[rgba(255,255,255,0.85)] bg-gradient-to-br from-[#fbfcff] to-[#d9e1ed] shadow-[8px_10px_22px_rgba(100,115,140,0.35),-4px_-4px_12px_rgba(255,255,255,0.8),inset_1px_1px_0_rgba(255,255,255,0.9)] transform-gpu origin-top-left transition-all duration-140 ${
+            className={`absolute top-[calc(100%+4px)] left-0 min-w-[170px] p-1.5 rounded-[16px] border border-[rgba(255,255,255,0.85)] bg-gradient-to-br from-[#fbfcff] to-[#d9e1ed] shadow-[8px_10px_22px_rgba(100,115,140,0.35),-4px_-4px_12px_rgba(255,255,255,0.8),inset_1px_1px_0_rgba(255,255,255,0.9)] transform-gpu origin-top-left transition-all duration-140 ${
               isMenuOpen ? "opacity-100 visible translate-y-0 scale-100" : "opacity-0 invisible -translate-y-1.5 scale-[0.97]"
             }`}
             role="menu"
@@ -245,12 +298,12 @@ export default function ReportingDashboard() {
           </h1>
 
           {reportError && (
-            <p className="mt-[-1rem] mb-4 p-3 border border-[#b42318] rounded-[0.75rem] color-[#8a1c13] bg-[#fff1f0] text-[0.9rem] text-center" role="alert">
+            <p className="mt-[-1rem] mb-4 p-3 border border-[#b42318] rounded-[0.75rem] text-[#8a1c13] bg-[#fff1f0] text-[0.9rem] text-center" role="alert">
               {reportError}
             </p>
           )}
 
-          {/* Matrix Grid */}
+          {/* Matrix Grid Layout Matrix */}
           <div className="grid grid-cols-2 gap-x-6 gap-y-[1.6rem]">
             {categories.map((cat, index) => {
               const currentTone = toneStyles[cat.tone];
@@ -260,7 +313,6 @@ export default function ReportingDashboard() {
                   key={cat.id}
                   type="button"
                   disabled={isSubmitting}
-                  /* Added hover:-translate-y-1 and transition-transform for the lift-up animation */
                   className={`group flex flex-col items-center gap-3 cursor-pointer [-webkit-tap-highlight-color:transparent] focus-visible:outline-none transition-transform duration-200 hover:-translate-y-1 active:translate-y-0 ${
                     categories.length === 5 && index === 4 ? "col-span-2 mx-auto w-1/2" : ""
                   }`}
@@ -281,7 +333,7 @@ export default function ReportingDashboard() {
                       currentTone.border
                     } ${currentTone.bgGradient} ${
                       isPressed
-                        ? `translate-y-[3px] shadow-[0_6px_10px_-4px_rgba(0,0,0,0.3),inset_4px_5px_10px_rgba(0,0,0,0.28),inset_-2px_-2px_6px_rgba(255,255,255,0.22)]`
+                        ? `${currentTone.shadowPressed} translate-y-[3px]`
                         : currentTone.shadowNormal
                     }`}
                   >
@@ -298,6 +350,56 @@ export default function ReportingDashboard() {
             })}
           </div>
         </main>
+
+        {/* SLIDING BOTTOM FORM SHEET POPUP */}
+        {isPopupOpen && (
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-xs flex items-end justify-center z-50">
+            <form 
+              onSubmit={handleFinalSubmit}
+              className="w-full bg-white rounded-t-[32px] p-6 shadow-[0_-8px_32px_rgba(0,0,0,0.15)] flex flex-col gap-4 border-t border-zinc-100 max-w-[420px]"
+            >
+              <div className="w-12 h-1.5 bg-zinc-200 rounded-full mx-auto mb-1" />
+              <h3 className="text-[1.3rem] font-extrabold text-center tracking-tight text-black">I-report ang Detalye</h3>
+
+              {capturedPhoto && (
+                <div className="relative w-full aspect-video rounded-[24px] overflow-hidden border border-zinc-100 bg-zinc-50 shadow-xs">
+                  <img src={capturedPhoto} alt="Snapshot Preview" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={handleRetake}
+                    className="absolute bottom-3 right-3 px-3 py-1.5 bg-black/75 text-white rounded-xl text-xs font-bold transition hover:bg-black"
+                  >
+                    Palitan ang Litrato
+                  </button>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="sheet-desc-area" className="text-xs font-extrabold uppercase tracking-wide text-zinc-500">
+                  Anong mangyayari?
+                </label>
+                <textarea
+                  id="sheet-desc-area"
+                  required
+                  rows={3}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="I-larawan ang detalye ng emergency dito (Hal. may usok sa gusali, aksidente sa daan)..."
+                  className="w-full border border-zinc-200 p-3 rounded-[16px] text-sm focus:outline-none focus:border-zinc-800 bg-zinc-50 text-[#0a0a0a] resize-none leading-relaxed"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-4 mt-2 bg-[#111] text-white font-extrabold rounded-[18px] shadow-lg transition active:scale-[0.98] disabled:opacity-50 cursor-pointer text-center"
+              >
+                {isSubmitting ? "Ipinapadala..." : "Proceed to Call"}
+              </button>
+            </form>
+          </div>
+        )}
+
       </div>
     </div>
   );
