@@ -66,15 +66,16 @@ function CallInterface({ roomId }: { roomId: string }) {
   const [time, setTime] = useState(0);
   const [hadOperator, setHadOperator] = useState(false);
 
-  const { isNoiseFilterEnabled, setNoiseFilterEnabled } = useKrispNoiseFilter();
+  const {isNoiseFilterEnabled, setNoiseFilterEnabled } = useKrispNoiseFilter();
 
-   useEffect(() => {
+  useEffect(() => {
     if (room && room.state === "connected") {
-      // 👇 UPDATE THIS METHOD CALL TOO
-      setNoiseFilterEnabled(true).catch((err) => console.error("Krisp failed:", err));
+      setNoiseFilterEnabled(true).catch((err) => {
+        console.warn("Krisp noise filter not supported or failed to load:", err);
+      });
     }
-  }, [room, setNoiseFilterEnabled]);
-  // Call duration counter
+  }, [room]);
+
   useEffect(() => {
     const timer = setInterval(() => setTime((prev) => prev + 1), 1000);
     return () => clearInterval(timer);
@@ -166,6 +167,20 @@ function CallInterface({ roomId }: { roomId: string }) {
         <div className={`${styles.timer} mt-6 text-xl font-semibold font-mono tracking-wider`}>
           {formatTime(time)}
         </div>
+      </div>
+      
+       <div className="mt-3 flex items-center justify-center gap-1.5 px-3 py-1 rounded-full border text-xs font-medium tracking-wide transition-all">
+        {isNoiseFilterEnabled ? (
+          <>
+            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+            <span className="text-emerald-400 font-mono uppercase">Krisp Processing Active</span>
+          </>
+        ) : (
+          <>
+            <span className="w-1.5 h-1.5 bg-zinc-600 rounded-full" />
+            <span className="text-zinc-500 font-mono uppercase">Krisp Offline</span>
+          </>
+        )}
       </div>
 
       {/* Control Actions Row */}

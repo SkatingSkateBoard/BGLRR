@@ -77,14 +77,17 @@ function OperatorCallInterface({ roomId }: { roomId: string }) {
   const [time, setTime] = useState(0);
   const { start, stopAndUpload } = useCallRecorder(room, requestId);
 
-    const { isNoiseFilterEnabled, setNoiseFilterEnabled } = useKrispNoiseFilter();
-    
-     useEffect(() => {
-      if (room && room.state === "connected") {
-        // 👇 UPDATE THIS METHOD CALL TOO
-        setNoiseFilterEnabled(true).catch((err) => console.error("Krisp failed:", err));
-      }
-    }, [room, setNoiseFilterEnabled]);
+  const {setNoiseFilterEnabled } = useKrispNoiseFilter();
+
+    useEffect(() => {
+    if (room && room.state === "connected") {
+      setNoiseFilterEnabled(true).catch((err) => {
+        console.warn("Krisp noise filter not supported or failed to load:", err);
+      });
+    }
+  }, [room]);
+
+
 
   useEffect(() => {
     if (room?.state === "connected") start();
