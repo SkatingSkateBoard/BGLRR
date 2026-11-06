@@ -7,8 +7,9 @@ import {
   RoomAudioRenderer,
   useParticipants,
   useLocalParticipant,
-  useRoomContext
+  useRoomContext,
 } from "@livekit/components-react";
+import { useKrispNoiseFilter } from "@livekit/components-react/krisp";
 import styles from "./page.module.css";
 
 interface PageProps {
@@ -23,6 +24,8 @@ export default function CallPage({ params }: PageProps) {
   const token = searchParams.get("token");
   const serverUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || "ws://localhost:7880";
   const router = useRouter();
+
+  
 
   if (!token) {
     return (
@@ -63,6 +66,14 @@ function CallInterface({ roomId }: { roomId: string }) {
   const [time, setTime] = useState(0);
   const [hadOperator, setHadOperator] = useState(false);
 
+  const { isNoiseFilterEnabled, setNoiseFilterEnabled } = useKrispNoiseFilter();
+
+   useEffect(() => {
+    if (room && room.state === "connected") {
+      // 👇 UPDATE THIS METHOD CALL TOO
+      setNoiseFilterEnabled(true).catch((err) => console.error("Krisp failed:", err));
+    }
+  }, [room, setNoiseFilterEnabled]);
   // Call duration counter
   useEffect(() => {
     const timer = setInterval(() => setTime((prev) => prev + 1), 1000);

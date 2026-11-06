@@ -7,7 +7,7 @@ import { createClient } from "@/utils/supabase/client";
 import {endLiveKitRoom} from "@/app/actions/livekit";
 import styles from "./page.module.css";
 import {useCallRecorder} from "@/app/hooks/useCallRecorder";
-
+import { useKrispNoiseFilter } from "@livekit/components-react/krisp";
 /*---------------------------------------------------------------------------------------------------------------------------------------------------*/
 
 /* Placeholder for the Live Location Tracking map. Swap the inside of this
@@ -69,13 +69,23 @@ export default function OperatorCallPage({ params }: { params: Promise<{ "room-i
 function OperatorCallInterface({ roomId }: { roomId: string }) {
   const supabase = createClient();
   const requestId = parseInt(roomId.split("-")[1], 10);
-
+  
   const participants = useParticipants();
   const room = useRoomContext();
   const router = useRouter();
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
   const [time, setTime] = useState(0);
   const { start, stopAndUpload } = useCallRecorder(room, requestId);
+
+    const { isNoiseFilterEnabled, setNoiseFilterEnabled } = useKrispNoiseFilter();
+    
+     useEffect(() => {
+      if (room && room.state === "connected") {
+        // 👇 UPDATE THIS METHOD CALL TOO
+        setNoiseFilterEnabled(true).catch((err) => console.error("Krisp failed:", err));
+      }
+    }, [room, setNoiseFilterEnabled]);
+
   useEffect(() => {
     if (room?.state === "connected") start();
   }, [room?.state, start]);
