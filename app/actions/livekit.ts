@@ -25,13 +25,16 @@ async function transcribeWithDeepgram(
   const apiKey = process.env.DEEPGRAM_API_KEY;
   if (!apiKey) throw new Error("DEEPGRAM_API_KEY is not set");
 
-  const params = new URLSearchParams({
-    model: "nova-3",
-    multichannel: "true",
-    smart_format: "true",
-    utterances: "true",
-    utt_split: "1.2",
-  });
+ const params = new URLSearchParams([
+  ["model", "nova-3"],
+  ["multichannel", "true"],
+  ["smart_format", "true"],
+  ["utterances", "true"],
+  ["utt_split", "1.2"],
+  ["language", "multi"],
+  ["language_hint", "tl"], 
+  ["language_hint", "en"]  
+  ]);
 
   // FIX: Convert ArrayBuffer to a Node Buffer for stable HTTP transmission
   const audioBuffer = Buffer.from(audio);
