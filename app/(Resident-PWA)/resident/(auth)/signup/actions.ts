@@ -6,6 +6,32 @@ import { UserFormValues } from "@/types/index"
 export async function signUpResident(formData: UserFormValues) {
   try {
     const supabase = await createClient()
+    let url: string | null = null;
+
+  // 1. Upload file to Supabase Storage if they are not a permanent resident
+  if (!formData.has_permanent_address && formData.proof_of_accommodation) {
+    const file = formData.proof_of_accommodation;
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `proofs/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("accomodation-photos") // Make sure this bucket exists in Supabase
+      .upload(filePath, file);
+
+    if (uploadError) {
+      console.error("Upload failed:", uploadError.message);
+      return; // Handle UI error message here
+    }
+
+    // Get the public URL (or just save `filePath` if your bucket is private)
+    const { data: urlData } = supabase.storage
+      .from("occupancy-proofs")
+      .getPublicUrl(filePath);
+
+    url = urlData.publicUrl;
+  }
+
 
     const { data, error } = await supabase.auth.signUp({
       email: formData.email,
@@ -23,6 +49,7 @@ export async function signUpResident(formData: UserFormValues) {
           current_address: formData.current_address,
           reason: formData.reason,
           specify_reason: formData.specify_reason,
+          proof_of_accommodation: url,  
           has_history: formData.has_history,
           medical_description: formData.medical_description,
           emergency_person: formData.emergency_person,

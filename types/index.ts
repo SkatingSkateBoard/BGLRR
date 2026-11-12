@@ -16,7 +16,7 @@ type GeneralInfo = {
 
 type AddressInfo = {
   has_permanent_address: boolean,
-  proof_of_accomodation: File | "",
+  proof_of_accommodation: File | "" | null;
   current_address: string; 
   reason: "work" | "rent" | "others" | "";
   specify_reason: string;
@@ -46,7 +46,7 @@ export const initialFormValues: UserFormValues = {
 
   // Address Info
   has_permanent_address: false,
-  proof_of_accomodation: "",
+  proof_of_accommodation: "",
   current_address: "",
   reason: "",
   specify_reason: "",

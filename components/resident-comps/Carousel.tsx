@@ -1,6 +1,6 @@
 "use client"
 
-import * as React from "react"
+import React, { useState } from "react"
 import {
   Carousel,
   CarouselContent,
@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/resident-comps/register-comps/Checkbox"
 import { ScrollableBox } from "@/components/resident-comps/register-comps/ScrollableBox"
 import { ErrorBox } from "@/components/resident-comps/register-comps/ErrorInfo"
 import { useRegistrationForm } from "@/components/context/RegistrationContext"
+import { createPortal } from "react-dom";
 
 import {useRouter} from "next/navigation";
 
@@ -59,7 +60,7 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   const file = e.target.files?.[0];
   if (file) {
     // Save the file to your formData (adjust property name to match your schema)
-    updateForm({ proof_of_occupancy: file });
+    updateForm({ proof_of_accommodation: file });
 
     // Generate a local URL to preview the image
     const objectUrl = URL.createObjectURL(file);
@@ -206,6 +207,16 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const timer = setTimeout(() => setShowError(false), 4000)
     return () => clearTimeout(timer)
   }, [showError])
+
+  // Close the fullscreen preview when Escape is pressed
+  React.useEffect(() => {
+    if (!isPreviewOpen) return
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsPreviewOpen(false)
+    }
+    document.addEventListener("keydown", handleEscape)
+    return () => document.removeEventListener("keydown", handleEscape)
+  }, [isPreviewOpen])
   return (
     <div className="flex flex-col w-full mx-auto">
       {showError && (
@@ -290,7 +301,7 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                     // Optional: Clear the uploaded image if they switch back to "Yes"
                     if (isPermanent) {
                       setPreviewUrl(null);
-                      updateForm({ proof_of_occupancy: null });
+                      updateForm({ proof_of_accommodation: null });
                     }
                   }}
                   error={errors.has_permanent_address}
@@ -370,7 +381,7 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                         htmlFor="occupancyProof"
                         className="text-xs font-medium text-gray-600"
                       >
-                        Upload Proof of Occupancy (e.g., Lease, Barangay Cert, ID)
+                        Upload Proof of Accommodation (e.g., lease agreement, utility bill, etc.)
                       </label>
 
                       <div className="flex items-center gap-3">
@@ -414,29 +425,30 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
             </InnerCarousel>
 
             {/* --- FULL-SCREEN LIGHTBOX MODAL --- */}
-            {isPreviewOpen && previewUrl && (
+            {isPreviewOpen && previewUrl && createPortal(
               <div
-                className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-xs"
+                className="fixed inset-0 z-100 flex items-center justify-center bg-black/80 backdrop-blur-md"
                 onClick={() => setIsPreviewOpen(false)}
               >
                 <div
-                  className="relative max-w-3xl max-h-[90vh] flex flex-col items-center"
-                  onClick={(e) => e.stopPropagation()} // Prevents closing when clicking the image itself
+                  className="relative p-4 w-full max-w-md max-h-[90vh] flex items-center justify-center"
                 >
                   <button
                     type="button"
                     onClick={() => setIsPreviewOpen(false)}
-                    className="absolute -top-10 right-0 text-white hover:text-gray-300 text-sm font-medium bg-black/50 px-3 py-1 rounded-full"
+                    className="absolute top-2 right-2 text-white hover:text-gray-300 text-sm font-medium bg-black/50 px-3 py-1 rounded-full shadow-md"
+                    aria-label="Close fullscreen preview"
                   >
-                    Close ✕
+                    ✕
                   </button>
                   <img
                     src={previewUrl}
                     alt="Full proof preview"
-                    className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
+                    className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
                   />
                 </div>
-              </div>
+              </div>,
+              document.body
             )}
           </CarouselItem>
 
