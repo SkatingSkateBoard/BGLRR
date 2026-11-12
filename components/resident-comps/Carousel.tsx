@@ -51,6 +51,23 @@ export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ su
   const [currentStep0Inner, setCurrentStep0Inner] = React.useState(0)
   const [showError, setShowError] = React.useState(false)
 
+//FILE LOGIC FOR OCCUPANCY STAGE
+const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (file) {
+    // Save the file to your formData (adjust property name to match your schema)
+    updateForm({ proof_of_occupancy: file });
+
+    // Generate a local URL to preview the image
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+  }
+};
+
+
   const getInner = React.useCallback(() => {
     if (!outerApi) return undefined
     return innerApis.current.get(outerApi.selectedScrollSnap())
@@ -261,19 +278,36 @@ export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ su
             <InnerCarousel index={1} register={register}>
               <CarouselItem className="flex flex-col gap-2 w-full">
                 <DropdownField
-                  id="haveOccupancy" name="haveOccupancy"
+                  id="haveOccupancy"
+                  name="haveOccupancy"
                   placeholder="Do you have a permanent occupancy here?"
-                  className="flex-1" options={["Yes", "No"]}
+                  className="flex-1"
+                  options={["Yes", "No"]}
                   value={formData.has_permanent_address ? "Yes" : "No"}
-                  onChange={(v) => updateForm({ has_permanent_address: v === "Yes" })}
+                  onChange={(v) => {
+                    const isPermanent = v === "Yes";
+                    updateForm({ has_permanent_address: isPermanent });
+                    // Optional: Clear the uploaded image if they switch back to "Yes"
+                    if (isPermanent) {
+                      setPreviewUrl(null);
+                      updateForm({ proof_of_occupancy: null });
+                    }
+                  }}
                   error={errors.has_permanent_address}
                   hideErrorText
                 />
 
                 {formData.has_permanent_address === true && (
                   <>
-                    <InputField id="permanentAddress" name="permanentAddress" placeholder="Permanent Address" className="w-full"
-                      value={formData.current_address || ""} onChange={(v) => updateForm({ current_address: v })} error={errors.current_address} />
+                    <InputField
+                      id="permanentAddress"
+                      name="permanentAddress"
+                      placeholder="Permanent Address"
+                      className="w-full"
+                      value={formData.current_address || ""}
+                      onChange={(v) => updateForm({ current_address: v })}
+                      error={errors.current_address}
+                    />
                     <div className="flex flex-row gap-2 items-center">
                       <CircleQuestionMark size={20} className="text-gray-400 shrink-0" />
                       <p className="text-gray-400 text-[12px] italic">
@@ -284,89 +318,128 @@ export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ su
                 )}
 
                 {formData.has_permanent_address === false && (
-                <>
-                  <DropdownField
-                    id="haveReason" 
-                    name="haveReason" 
-                    placeholder="Reason?" 
-                    className="flex-1"
-                    options={["rent", "work", "others"]}
-                    value={formData.reason || ""}
-                    onChange={(v) => {
-                      updateForm({ reason: v as "rent" | "work" | "others" | "", specify_reason: "" });
-                    }}
-                    error={errors.reason}
-                  />
-
-               
-                  {formData.reason && (
-                    <InputField 
-                      id="otherReason" 
-                      name="otherReason" 
-                      placeholder="Please specify details" 
-                      className="w-full"
-                      value={formData.specify_reason || ""} 
-                      onChange={(v) => updateForm({ specify_reason: v })} 
-                      error={errors.specify_reason || errors.reason}  
-                    />
-                  )}
-
-                  <InputField 
-                    id="temporaryAddress" 
-                    name="temporaryAddress" 
-                    placeholder="What is your temporary address?" 
-                    className="w-full"
-                    value={formData.current_address || ""} 
-                    onChange={(v) => updateForm({ current_address: v })} 
-                    error={errors.current_address}  
-                  />
-                  
-                  <div className="flex flex-row gap-2 items-center">
-                    <CircleQuestionMark size={20} className="text-gray-400 shrink-0" />
-                    <p className="text-gray-400 text-[12px] italic">
-                      Example: B17 L40 Tres Marias St. Greater Lagro, Quezon City
-                    </p>
-                  </div>
-                </>
-              )}
-
-              </CarouselItem>
-            </InnerCarousel>
-          </CarouselItem>
-          <CarouselItem>
-            <p className={pClass}>Medical Information</p>
-            <InnerCarousel index={2} register={register}>
-              <CarouselItem className="flex flex-col gap-2 w-full">
-                <DropdownField
-                  id="hasHistory" name="hasHistory"
-                  placeholder="Do you have a history of injury, illness, or disability?"
-                  className="flex-1" options={["Yes", "No"]}
-                  value={formData.has_history ? "Yes" : "No"}
-                  onChange={(v) => updateForm({ has_history: v === "Yes" })}
-                  error={errors.has_history}
-                  
-                />
-
-                {formData.has_history === true && (
                   <>
-                    <InputField id="historyDetails" name="historyDetails" placeholder="Please specify your history" className="w-full"
-                      value={formData.medical_description || ""} onChange={(v) => updateForm({ medical_description: v })} error={errors.medical_description} hideErrorText />
-                    <div className="flex flex-row gap-2 items-center mb-3">
+                    <DropdownField
+                      id="haveReason"
+                      name="haveReason"
+                      placeholder="Reason?"
+                      className="flex-1"
+                      options={["rent", "work", "others"]}
+                      value={formData.reason || ""}
+                      onChange={(v) => {
+                        updateForm({
+                          reason: v as "rent" | "work" | "others" | "",
+                          specify_reason: "",
+                        });
+                      }}
+                      error={errors.reason}
+                    />
+
+                    {formData.reason && (
+                      <InputField
+                        id="otherReason"
+                        name="otherReason"
+                        placeholder="Please specify details"
+                        className="w-full"
+                        value={formData.specify_reason || ""}
+                        onChange={(v) => updateForm({ specify_reason: v })}
+                        error={errors.specify_reason || errors.reason}
+                      />
+                    )}
+
+                    <InputField
+                      id="temporaryAddress"
+                      name="temporaryAddress"
+                      placeholder="What is your temporary address?"
+                      className="w-full"
+                      value={formData.current_address || ""}
+                      onChange={(v) => updateForm({ current_address: v })}
+                      error={errors.current_address}
+                    />
+
+                    <div className="flex flex-row gap-2 items-center">
                       <CircleQuestionMark size={20} className="text-gray-400 shrink-0" />
                       <p className="text-gray-400 text-[12px] italic">
-                        Example: Sakit sa puso, hypertension, etc.
+                        Example: B17 L40 Tres Marias St. Greater Lagro, Quezon City
                       </p>
+                    </div>
+
+                    {/* --- NEW FILE UPLOAD & THUMBNAIL PREVIEW --- */}
+                    <div className="flex flex-col gap-1.5 mt-1">
+                      <label
+                        htmlFor="occupancyProof"
+                        className="text-xs font-medium text-gray-600"
+                      >
+                        Upload Proof of Occupancy (e.g., Lease, Barangay Cert, ID)
+                      </label>
+
+                      <div className="flex items-center gap-3">
+                        <input
+                          id="occupancyProof"
+                          name="occupancyProof"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          className="block w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 cursor-pointer"
+                        />
+
+                        {/* Small Thumbnail Preview */}
+                        {previewUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setIsPreviewOpen(true)}
+                            className="relative group shrink-0 w-12 h-12 rounded-md overflow-hidden border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            title="Click to view full image"
+                          >
+                            <img
+                              src={previewUrl}
+                              alt="Uploaded proof thumbnail"
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <span className="text-[9px] text-white font-medium">
+                                View
+                              </span>
+                            </div>
+                          </button>
+                        )}
+                      </div>
+                      {errors.proof_of_occupancy && (
+                        <p className="text-red-500 text-xs">{errors.proof_of_occupancy}</p>
+                      )}
                     </div>
                   </>
                 )}
-
-                <InputField id="emergencyContactName" name="emergencyContactName" placeholder="Emergency Contact Person Name" className="w-full"
-                  value={formData.emergency_person || ""} onChange={(v) => updateForm({ emergency_person: v })} error={errors.emergency_person} />
-                <InputField id="emergencyContactNumber" name="emergencyContactNumber" placeholder="Emergency Contact Person Number" className="w-full"
-                  value={formData.emergency_contact_number || ""} onChange={(v) => updateForm({ emergency_contact_number: v })} error={errors.emergency_contact_number}  />
               </CarouselItem>
             </InnerCarousel>
+
+            {/* --- FULL-SCREEN LIGHTBOX MODAL --- */}
+            {isPreviewOpen && previewUrl && (
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-xs"
+                onClick={() => setIsPreviewOpen(false)}
+              >
+                <div
+                  className="relative max-w-3xl max-h-[90vh] flex flex-col items-center"
+                  onClick={(e) => e.stopPropagation()} // Prevents closing when clicking the image itself
+                >
+                  <button
+                    type="button"
+                    onClick={() => setIsPreviewOpen(false)}
+                    className="absolute -top-10 right-0 text-white hover:text-gray-300 text-sm font-medium bg-black/50 px-3 py-1 rounded-full"
+                  >
+                    Close ✕
+                  </button>
+                  <img
+                    src={previewUrl}
+                    alt="Full proof preview"
+                    className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
+                  />
+                </div>
+              </div>
+            )}
           </CarouselItem>
+
 
           <CarouselItem>
             <p className={pClass}>Terms and Conditions</p>
