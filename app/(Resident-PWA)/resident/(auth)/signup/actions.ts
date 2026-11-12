@@ -1,39 +1,33 @@
 "use server"
 
-import { createClient } from "@/utils/supabase/server" // Make sure this path points to your server client helper
+import { createClient, createAdminClient } from "@/utils/supabase/server"
 import { UserFormValues } from "@/types/index"
 
 export async function signUpResident(formData: UserFormValues) {
   try {
     const supabase = await createClient()
-    let url: string | null = null;
+    const supabaseAdmin = createAdminClient()
+    let uploadedPath: string | null = null;
 
-  // 1. Upload file to Supabase Storage if they are not a permanent resident
-  if (!formData.has_permanent_address && formData.proof_of_accommodation) {
-    const file = formData.proof_of_accommodation;
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-    const filePath = `proofs/${fileName}`;
+    // 1. Upload file to Supabase Storage if they are not a permanent resident
+    if (!formData.has_permanent_address && formData.proof_of_accommodation) {
+      const file = formData.proof_of_accommodation;
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from("accomodation-photos") // Make sure this bucket exists in Supabase
-      .upload(filePath, file);
+      const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+        .from("accomodation-photos")
+        .upload(fileName, file);
 
-    if (uploadError) {
-      console.error("Upload failed:", uploadError.message);
-      return; // Handle UI error message here
+      if (uploadError) {
+        return { success: false, error: `Upload failed: ${uploadError.message}` }
+      }
+
+      uploadedPath = uploadData.path;
     }
 
-    // Get the public URL (or just save `filePath` if your bucket is private)
-    const { data: urlData } = supabase.storage
-      .from("occupancy-proofs")
-      .getPublicUrl(filePath);
-
-    url = urlData.publicUrl;
-  }
-
-
-    const { data, error } = await supabase.auth.signUp({
+    // 2. Sign up the resident
+    const { error } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
       options: {
@@ -49,7 +43,7 @@ export async function signUpResident(formData: UserFormValues) {
           current_address: formData.current_address,
           reason: formData.reason,
           specify_reason: formData.specify_reason,
-          proof_of_accommodation: url,  
+          proof_of_accommodation: uploadedPath,
           has_history: formData.has_history,
           medical_description: formData.medical_description,
           emergency_person: formData.emergency_person,
@@ -60,6 +54,10 @@ export async function signUpResident(formData: UserFormValues) {
     })
 
     if (error) {
+      // Clean up the uploaded photo if account creation fails
+      if (uploadedPath) {
+        await supabaseAdmin.storage.from("accomodation-photos").remove([uploadedPath]);
+      }
       return { success: false, error: error.message }
     }
 

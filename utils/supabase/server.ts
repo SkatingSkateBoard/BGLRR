@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-
+import { createClient as createSupabaseAdmin } from "@supabase/supabase-js";
 export async function createClient() {
   const cookieStore = await cookies();
 
@@ -21,6 +21,18 @@ export async function createClient() {
             // Server Components cannot always write cookies.
           }
         },
+      },
+    }
+  );
+}
+export function createAdminClient() {
+  return createSupabaseAdmin(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SECRET_KEY!,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
       },
     }
   );
