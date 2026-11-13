@@ -21,26 +21,46 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
 
-    const updateForm = (fields: Partial<UserFormValues>) => {
-        setFormData((prev) => ({ ...prev, ...fields }));
+   const updateForm = (fields: Partial<UserFormValues>) => {
+    setFormData((prev) => {
+        const nextData = { ...prev, ...fields };
 
-        const fieldKeys = Object.keys(fields);
-        if (fieldKeys.length > 0) {
-            setErrors((prev) => {
-                const next = { ...prev };
-                fieldKeys.forEach((key) => delete next[key]);
-                return next;
-            });
+        if (fields.has_permanent_address === true) {
+            nextData.reason = "";
+            nextData.specify_reason = "";
+            nextData.proof_of_accommodation = null;
         }
-    };
+
+        if (fields.has_permanent_address === false) {
+            nextData.proof_of_accommodation = null;
+        }
+
+        return nextData;
+    });
+
+    const fieldKeys = Object.keys(fields);
+    if (fieldKeys.length > 0) {
+        setErrors((prev) => {
+            const next = { ...prev };
+            fieldKeys.forEach((key) => delete next[key]);
+
+            if (fields.has_permanent_address !== undefined) {
+                delete next.current_address;
+                delete next.reason;
+                delete next.specify_reason;
+                delete next.proof_of_accommodation;
+            }
+            return next;
+        });
+    }
+};
 
     const clearErrors = () => setErrors({});
 
-      const validateStep = (step: number) => {
+    const validateStep = (step: number) => {
         const newErrors: Record<string, string> = {};
         const emailRe = /^\S+@\S+\.\S+$/;
 
-     
         if (!formData.first_name?.trim()) newErrors.first_name = "First name is required";
         if (!formData.last_name?.trim()) newErrors.last_name = "Last name is required";
         
@@ -56,13 +76,10 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
             newErrors.phone = "Phone number must be exactly 11 digits and start with 0";
         }
 
-        
         if (formData.age === "" || formData.age === undefined) {
             newErrors.age = "Age is required";
-        
         } else if (isNaN(Number(formData.age))) {
             newErrors.age = "Invalid age";
-        
         }
         
         if (!formData.sex) newErrors.sex = "Sex is required";
@@ -84,10 +101,16 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
             newErrors.confirmPassword = "Password Mismatch";
         }
 
-   
-        if (!formData.current_address?.trim()) newErrors.current_address = "Current address is required";
-        if (formData.has_permanent_address === false && !formData.reason?.trim()) {
-            newErrors.reason = "Reason for no permanent address is required";
+        if (!formData.current_address?.trim()) {
+            newErrors.current_address = "Current address is required";
+        }
+        if (formData.has_permanent_address === false) {
+            if (!formData.reason?.trim()) {
+                newErrors.reason = "Reason for no permanent address is required";
+            }
+            if (!formData.proof_of_accommodation) {
+                newErrors.proof_of_accommodation = "Proof of accommodation is required";
+            }
         }
 
         if (formData.has_history === true && !formData.medical_description?.trim()) {
@@ -97,7 +120,7 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
         if (!formData.emergency_contact_number?.trim()) newErrors.emergency_contact_number = "Emergency contact number is required";
 
         if (!formData.terms) newErrors.terms = "Please Accept the Terms and Conditions";
-
+        console.log("Failed fields:", newErrors, "Current formData:", formData);
         setErrors(newErrors);
 
         if (step === 1) {
@@ -106,7 +129,7 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
                    !newErrors.password && !newErrors.confirmPassword;
         }
         if (step === 2) {
-            return !newErrors.current_address && !newErrors.reason;
+            return !newErrors.current_address && !newErrors.reason && !newErrors.proof_of_accommodation;
         }
         if (step === 3) {
             return !newErrors.medical_description && !newErrors.emergency_person && !newErrors.emergency_contact_number;
@@ -126,7 +149,7 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
 };
 
 export const useRegistrationForm = () => {
-  const context = useContext(FormContext);
-  if (!context) throw new Error("useRegistrationForm must be used within a FormProvider");
-  return context;
+    const context = useContext(FormContext);
+    if (!context) throw new Error("useRegistrationForm must be used within a FormProvider");
+    return context;
 };

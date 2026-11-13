@@ -415,8 +415,8 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                           </button>
                         )}
                       </div>
-                      {errors.proof_of_occupancy && (
-                        <p className="text-red-500 text-xs">{errors.proof_of_occupancy}</p>
+                      {errors.proof_of_accommodation && (
+                        <p className="text-red-500 text-xs">{errors.proof_of_accommodation}</p>
                       )}
                     </div>
                   </>
@@ -450,6 +450,65 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
               </div>,
               document.body
             )}
+          </CarouselItem>
+
+          <CarouselItem>
+            <p className={pClass}>Medical Information</p>
+            <InnerCarousel index={2} register={register}>
+              <CarouselItem className="flex flex-col gap-2 w-full">
+                <DropdownField
+                  id="hasHistory"
+                  name="hasHistory"
+                  placeholder="Do you have a history of injury, illness, or disability?"
+                  className="flex-1"
+                  options={["Yes", "No"]}
+                  value={formData.has_history ? "Yes" : "No"}
+                  onChange={(v) => updateForm({ has_history: v === "Yes" })}
+                  error={errors.has_history}
+                  hideErrorText
+                />
+
+                {formData.has_history === true && (
+                  <>
+                    <InputField
+                      id="historyDetails"
+                      name="historyDetails"
+                      placeholder="Please specify your history"
+                      className="w-full"
+                      value={formData.medical_description || ""}
+                      onChange={(v) => updateForm({ medical_description: v })}
+                      error={errors.medical_description}
+                      hideErrorText
+                    />
+                    <div className="flex flex-row gap-2 items-center mb-3">
+                      <CircleQuestionMark size={20} className="text-gray-400 shrink-0" />
+                      <p className="text-gray-400 text-[12px] italic">
+                        Example: Sakit sa puso, hypertension, etc.
+                      </p>
+                    </div>
+                  </>
+                )}
+
+                <InputField
+                  id="emergencyContactName"
+                  name="emergencyContactName"
+                  placeholder="Emergency Contact Person Name"
+                  className="w-full"
+                  value={formData.emergency_person || ""}
+                  onChange={(v) => updateForm({ emergency_person: v })}
+                  error={errors.emergency_person}
+                />
+                <InputField
+                  id="emergencyContactNumber"
+                  name="emergencyContactNumber"
+                  placeholder="Emergency Contact Person Number"
+                  className="w-full"
+                  value={formData.emergency_contact_number || ""}
+                  onChange={(v) => updateForm({ emergency_contact_number: v })}
+                  error={errors.emergency_contact_number}
+                />
+              </CarouselItem>
+            </InnerCarousel>
           </CarouselItem>
 
 
