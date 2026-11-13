@@ -25,6 +25,8 @@ export default function CallPage({ params }: PageProps) {
   const serverUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || "ws://localhost:7880";
   const router = useRouter();
 
+  //ping watchposition
+
   
 
   if (!token) {

@@ -16,7 +16,7 @@ export async function signUpResident(formData: UserFormValues) {
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
 
       const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-        .from("accomodation-photos")
+        .from("accommodation-photos")
         .upload(fileName, file);
 
       if (uploadError) {
@@ -56,7 +56,7 @@ export async function signUpResident(formData: UserFormValues) {
     if (error) {
       // Clean up the uploaded photo if account creation fails
       if (uploadedPath) {
-        await supabaseAdmin.storage.from("accomodation-photos").remove([uploadedPath]);
+        await supabaseAdmin.storage.from("accommodation-photos").remove([uploadedPath]);
       }
       return { success: false, error: error.message }
     }

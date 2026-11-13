@@ -168,6 +168,25 @@ export default function ReportingDashboard() {
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
 
+
+const fetchCoordinates = (): Promise<{ latitude: number; longitude: number }> => {
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => resolve({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      }),
+      (error) => reject(error),
+      {
+        enableHighAccuracy: true,
+        timeout: 10000, // Wait up to 10 seconds before failing
+        maximumAge: 0,  // Force a fresh location reading instead of using a cached one
+      }
+    );
+  });
+};
+
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -219,8 +238,9 @@ export default function ReportingDashboard() {
     try {
       // 💡 NOTE: description and capturedPhoto are saved locally in component state.
       // Once you support multi-param objects on your backend, update this action call to pass them down:
-      // eg: const result = await createEmergencyRequest({ category: chosenCategory, description, photo: capturedPhoto });
-      const result = await createEmergencyRequest(chosenCategory);
+      // eg: const result = await createEmergencyRequest({ category: chosenCategory, description, photo: capturedPhoto, coords });
+      const coords = await fetchCoordinates(); // Fetch current coordinates before submission
+      const result = await createEmergencyRequest(chosenCategory, coords);
       
       if (result.success) {
         router.push(`/resident/call/${result.roomId}?token=${result.livekitToken}`);

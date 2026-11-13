@@ -11,7 +11,7 @@ type EmergencyData = {
   status: string;
 } | null;
 
-export async function createEmergencyRequest(category: string) {
+export async function createEmergencyRequest(category: string, coords: { latitude: number; longitude: number } | null) {
   // 1. GLOBAL SAFETY NET: Catches absolutely any runtime panic safely
   try {
     const supabase = await createClient();
@@ -49,7 +49,9 @@ export async function createEmergencyRequest(category: string) {
         .insert({
           resident_id: resident.id,
           category: category,
-          status: "pending" 
+          status: "pending",
+          current_latitude: coords?.latitude ?? null,
+          current_longitude: coords?.longitude ?? null
         })
         .select("id, status") 
         .single();

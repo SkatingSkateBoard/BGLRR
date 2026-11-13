@@ -7,7 +7,7 @@ import { approveResident, rejectResident } from "@/app/actions/verify";
 type AddressInfo = {
   id: number;
   has_permanent_address: boolean;
-  proof_of_accomodation: string | null;
+  proof_of_accommodation: string | null;
   current_address: string | null;
   reason: string | null;
   specify_reason: string | null;
@@ -43,6 +43,42 @@ export function RegisteredScreen() {
   const [selectedResident, setSelectedResident] = useState<Resident | null>(null);
   const [reason, setReason] = useState<string>("");
   const [isRejecting, setIsRejecting] = useState(false);
+
+  const [proofUrl, setProofUrl] = useState<string | null>(null);
+  const [loadingProof, setLoadingProof] = useState(false);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false)
+
+   useEffect(() => {
+    let isMounted = true;
+    setProofUrl(null); // Clear the previous resident's image immediately
+
+    const filePath = selectedResident?.address_info?.proof_of_accommodation;
+    if (!filePath) return;
+
+    const fetchSignedUrl = async () => {
+      setLoadingProof(true);
+      try {
+        const { data, error } = await supabase.storage
+          .from("accommodation-photos")
+          .createSignedUrl(filePath, 3600); // Valid for 1 hour
+
+        if (error) throw error;
+        if (isMounted && data?.signedUrl) {
+          setProofUrl(data.signedUrl);
+        }
+      } catch (err) {
+        console.error("Error signing proof URL:", err);
+      } finally {
+        if (isMounted) setLoadingProof(false);
+      }
+    };
+
+    fetchSignedUrl();
+
+    return () => {
+      isMounted = false; // Prevents race conditions if operator clicks quickly between residents
+    };
+  }, [selectedResident]);
 
   const fetchPendingResidents = async () => {
     try {
@@ -185,21 +221,42 @@ export function RegisteredScreen() {
                     <li><span className="text-gray-400 font-normal">Phone:</span> {selectedResident.phone_number || "N/A"}</li>
                   </ul>
                 </div>
-                                <div className="pt-4 border-t border-gray-100">
+                
+                <div className="pt-4 border-t border-gray-100">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Address Info</h4>
                   {selectedResident.address_info ? (
-                    <div className="space-y-1 text-sm font-semibold text-gray-800">
-                      <p className="m-0"><span className="text-gray-400 font-normal">Current:</span> {selectedResident.address_info.current_address || "N/A"}</p>
-                      <p className="m-0"><span className="text-gray-400 font-normal">Permanent:</span> {selectedResident.address_info.has_permanent_address ? "Yes" : "No"}</p>
-                      {selectedResident.address_info.proof_of_accomodation && (
-                        <p className="m-0 truncate"><span className="text-gray-400 font-normal">Proof:</span> <a href={selectedResident.address_info.proof_of_accomodation} target="_blank" className="text-blue-600 underline">View Document</a></p>
-                      )}
-                    </div>
+                  <div className="space-y-2 text-sm font-semibold text-gray-800">
+                    <p className="m-0"><span className="text-gray-400 font-normal">Current:</span> {selectedResident.address_info.current_address || "N/A"}</p>
+                    <p className="m-0"><span className="text-gray-400 font-normal">Permanent:</span> {selectedResident.address_info.has_permanent_address ? "Yes" : "No"}</p>
+                    
+                    {selectedResident.address_info.proof_of_accommodation && (
+                      <div className="pt-2">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-gray-400 font-normal">Proof of Accommodation:</span>
+                        </div>
+
+                        {loadingProof ? (
+                          <div className="h-32 w-full rounded-lg bg-gray-100 animate-pulse flex items-center justify-center text-xs text-gray-400">
+                            Loading document...
+                          </div>
+                        ) : proofUrl ? (
+                          <img
+                            src={proofUrl}
+                            alt="Proof of Accommodation"
+                            onClick={() => setIsLightboxOpen(true)}
+                            title="Click to enlarge"
+                            className="w-full max-h-64 object-contain rounded-lg border border-gray-200 bg-gray-50 cursor-zoom-in hover:opacity-90 transition-opacity"
+                          />
+                        ) : (
+                          <p className="m-0 text-xs text-red-500">Unable to load document.</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   ) : (
                     <p className="m-0 text-xs italic text-gray-400">No address details submitted.</p>
                   )}
                 </div>
-
                 <div className="pt-4 border-t border-gray-100">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Medical History</h4>
                   {selectedResident.medical_info ? (
@@ -281,6 +338,29 @@ export function RegisteredScreen() {
             </div>
           )}
         </section>
+
+       {isLightboxOpen && proofUrl && (
+        <div
+          onClick={() => setIsLightboxOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-3 sm:p-6 backdrop-blur-xs cursor-zoom-out"
+        >
+          <div className="relative w-full h-full flex flex-col items-center justify-center">
+            <button
+              type="button"
+              onClick={() => setIsLightboxOpen(false)}
+              className="fixed top-4 right-5 z-60 px-4 py-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white text-sm font-semibold cursor-pointer border-0 shadow-lg"
+            >
+              ✕ Close
+            </button>
+            <img
+              src={proofUrl}
+              alt="Proof of Accommodation Full Size"
+              onClick={(e) => e.stopPropagation()}
+              className="w-[94vw] h-[88vh] object-contain rounded-lg cursor-default"
+            />
+          </div>
+        </div>
+        )}
       </div>
     </main>
   );
