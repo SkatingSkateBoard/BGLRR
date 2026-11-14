@@ -11,7 +11,7 @@ type EmergencyData = {
   status: string;
 } | null;
 
-export async function createEmergencyRequest(category: string, coords: { latitude: number; longitude: number } | null) {
+export async function createEmergencyRequest(category: string, coords: { latitude: number; longitude: number } | null, description: string | null, file: File | null ) {
   // 1. GLOBAL SAFETY NET: Catches absolutely any runtime panic safely
   try {
     const supabase = await createClient();
@@ -31,6 +31,9 @@ export async function createEmergencyRequest(category: string, coords: { latitud
       return { success: false, error: "Resident record not found." };
     }
 
+// Then pass `photo_emergency: photoUrl` into your .insert({...})
+
+
     const ONE_MINUTE_AGO = new Date(Date.now() - 60 * 1000).toISOString();
     const { data: existingReq } = await supabase
       .from("tbl_emergency_req")
@@ -44,6 +47,27 @@ export async function createEmergencyRequest(category: string, coords: { latitud
     let emergencyData: EmergencyData = existingReq;
 
     if (!existingReq) {
+      let photoUrl: string | null = null;;
+
+      if (file && file.size > 0) {
+        const fileExt = file.name.split(".").pop() || "png";
+        const filePath = `${resident.id}/${Date.now()}.${fileExt}`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("emergency-photos") // Replace with your bucket name
+          .upload(filePath, file, {
+            contentType: file.type || "image/png",
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error("Photo upload failed:", uploadError.message);
+        } else {
+          // For private buckets, save the relative path (NOT getPublicUrl)
+          photoUrl = uploadData.path;
+        }
+      }
+
       const { data, error } = await supabase
         .from("tbl_emergency_req")
         .insert({
@@ -51,7 +75,9 @@ export async function createEmergencyRequest(category: string, coords: { latitud
           category: category,
           status: "pending",
           current_latitude: coords?.latitude ?? null,
-          current_longitude: coords?.longitude ?? null
+          current_longitude: coords?.longitude ?? null,
+          resident_description: description,
+          photo_emergency: photoUrl,
         })
         .select("id, status") 
         .single();

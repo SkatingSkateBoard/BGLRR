@@ -168,23 +168,30 @@ export default function ReportingDashboard() {
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
 
+  // Actual File 
 
-const fetchCoordinates = (): Promise<{ latitude: number; longitude: number }> => {
-  return new Promise((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(
-      (position) => resolve({
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-      }),
-      (error) => reject(error),
-      {
-        enableHighAccuracy: true,
-        timeout: 10000, // Wait up to 10 seconds before failing
-        maximumAge: 0,  // Force a fresh location reading instead of using a cached one
-      }
-    );
-  });
-};
+  const [file, setFile] = useState<File | null>(null);
+
+
+  const getPosition = (options?: PositionOptions): Promise<GeolocationPosition> => {
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, options);
+    });
+  };
+
+  const fetchCoordinates = async (): Promise<{ latitude: number; longitude: number }> => {
+    const position = await getPosition({
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0,
+    });
+
+    return {
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+    };
+  };
+
 
 
   useEffect(() => {
@@ -210,6 +217,8 @@ const fetchCoordinates = (): Promise<{ latitude: number; longitude: number }> =>
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    setFile(file);
 
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -240,7 +249,7 @@ const fetchCoordinates = (): Promise<{ latitude: number; longitude: number }> =>
       // Once you support multi-param objects on your backend, update this action call to pass them down:
       // eg: const result = await createEmergencyRequest({ category: chosenCategory, description, photo: capturedPhoto, coords });
       const coords = await fetchCoordinates(); // Fetch current coordinates before submission
-      const result = await createEmergencyRequest(chosenCategory, coords);
+      const result = await createEmergencyRequest(chosenCategory, coords, description, file);
       
       if (result.success) {
         router.push(`/resident/call/${result.roomId}?token=${result.livekitToken}`);
