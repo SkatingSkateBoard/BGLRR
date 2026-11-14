@@ -1,6 +1,6 @@
 "use client";
 
-import React, { use, useState, useEffect } from "react";
+import React, { use, useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { 
   LiveKitRoom, 
@@ -10,6 +10,7 @@ import {
   useRoomContext,
 } from "@livekit/components-react";
 import { useKrispNoiseFilter } from "@livekit/components-react/krisp";
+import { createClient } from "@/utils/supabase/client";
 import styles from "./page.module.css";
 
 interface PageProps {
@@ -24,9 +25,56 @@ export default function CallPage({ params }: PageProps) {
   const token = searchParams.get("token");
   const serverUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || "ws://localhost:7880";
   const router = useRouter();
+  const supabase = createClient();
 
   //ping watchposition
+ const lastPingTimeRef = useRef<number>(0);
 
+ useEffect(() => {
+    if (!token || !("geolocation" in navigator)) return;
+
+    const PING_INTERVAL_MS = 5000;
+
+    const watchId = navigator.geolocation.watchPosition(
+      async (position) => {
+        const now = Date.now();
+
+        if (now - lastPingTimeRef.current < PING_INTERVAL_MS) {
+          return;
+        }
+
+        lastPingTimeRef.current = now;
+
+        const { latitude, longitude } = position.coords;
+
+        const { error } = await supabase
+          .from("tbl_emergency_req") // Replace with your actual table name
+          .update({
+            current_latitude: latitude,
+            current_longitude: longitude,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", roomId); // Replace with the column linking the row to this call
+
+        if (error) {
+          console.error("Failed to update emergency location:", error.message);
+        }
+      },
+      (error) => {
+        console.error("GPS watch error:", error.message);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+
+    // Stop watching GPS as soon as the call ends or user leaves the page
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
+  }, [token, roomId, supabase]);
   
 
   if (!token) {

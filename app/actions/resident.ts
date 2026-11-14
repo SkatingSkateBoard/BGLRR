@@ -1,17 +1,20 @@
-// Actions 
+// Actions
 
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
-
-import { AccessToken, LiveKitAPI } from "livekit-server-sdk"; 
+import { createClient, createAdminClient } from "@/utils/supabase/server";
+import { AccessToken, LiveKitAPI } from "livekit-server-sdk";
 
 type EmergencyData = {
-  id: number; 
+  id: number;
   status: string;
 } | null;
 
-export async function createEmergencyRequest(category: string, coords: { latitude: number; longitude: number } | null, description: string | null, file: File | null ) {
+export async function createEmergencyRequest(
+  category: string,
+  coords: { latitude: number; longitude: number } | null,
+  description: string | null
+) {
   // 1. GLOBAL SAFETY NET: Catches absolutely any runtime panic safely
   try {
     const supabase = await createClient();
@@ -31,9 +34,6 @@ export async function createEmergencyRequest(category: string, coords: { latitud
       return { success: false, error: "Resident record not found." };
     }
 
-// Then pass `photo_emergency: photoUrl` into your .insert({...})
-
-
     const ONE_MINUTE_AGO = new Date(Date.now() - 60 * 1000).toISOString();
     const { data: existingReq } = await supabase
       .from("tbl_emergency_req")
@@ -45,29 +45,9 @@ export async function createEmergencyRequest(category: string, coords: { latitud
       .maybeSingle();
 
     let emergencyData: EmergencyData = existingReq;
+    const isNewRequest = !existingReq;
 
     if (!existingReq) {
-      let photoUrl: string | null = null;;
-
-      if (file && file.size > 0) {
-        const fileExt = file.name.split(".").pop() || "png";
-        const filePath = `${resident.id}/${Date.now()}.${fileExt}`;
-
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("emergency-photos") // Replace with your bucket name
-          .upload(filePath, file, {
-            contentType: file.type || "image/png",
-            upsert: false,
-          });
-
-        if (uploadError) {
-          console.error("Photo upload failed:", uploadError.message);
-        } else {
-          // For private buckets, save the relative path (NOT getPublicUrl)
-          photoUrl = uploadData.path;
-        }
-      }
-
       const { data, error } = await supabase
         .from("tbl_emergency_req")
         .insert({
@@ -77,11 +57,11 @@ export async function createEmergencyRequest(category: string, coords: { latitud
           current_latitude: coords?.latitude ?? null,
           current_longitude: coords?.longitude ?? null,
           resident_description: description,
-          photo_emergency: photoUrl,
+          photo_emergency: null,
         })
-        .select("id, status") 
+        .select("id, status")
         .single();
-      
+
       if (error) {
         console.error("Insert error:", error);
         return { success: false, error: `Database insert failed: ${error.message}` };
@@ -107,45 +87,86 @@ export async function createEmergencyRequest(category: string, coords: { latitud
     }
 
     try {
-    const livekitApi = new LiveKitAPI();
+      const livekitApi = new LiveKitAPI();
 
-    await livekitApi.room.createRoom({
-      name: roomName,
-      emptyTimeout: 1200,
-      maxParticipants: 2,
-    });
+      await livekitApi.room.createRoom({
+        name: roomName,
+        emptyTimeout: 1200,
+        maxParticipants: 2,
+      });
 
-    console.log("LiveKit room created:", roomName);
-  } catch (error) {
-    console.log("Room may already exist or LiveKit API failed:", error);
-  }
+      console.log("LiveKit room created:", roomName);
+    } catch (error) {
+      console.log("Room may already exist or LiveKit API failed:", error);
+    }
 
-    const at = new AccessToken(apiKey, apiSecret, { 
+    const at = new AccessToken(apiKey, apiSecret, {
       identity: participantName,
-      ttl: "1h" 
+      ttl: "1h",
     });
 
-    at.addGrant({ 
-      roomJoin: true, 
-      room: roomName, 
-      canPublish: true, 
-      canSubscribe: true 
+    at.addGrant({
+      roomJoin: true,
+      room: roomName,
+      canPublish: true,
+      canSubscribe: true,
     });
 
     const token = await at.toJwt();
 
     return {
       success: true,
+      emergencyId: emergencyData.id,
+      residentId: resident.id,
+      isNewRequest,
       roomId: roomName,
       livekitToken: token,
-      error: null
+      error: null,
     };
-
   } catch (globalError: any) {
     console.error("Caught fatal Server Action exception:", globalError);
     return {
       success: false,
-      error: `Server Crash: ${globalError?.message || "Unknown error boundary hit."}`
+      error: `Server Crash: ${globalError?.message || "Unknown error boundary hit."}`,
     };
+  }
+}
+
+export async function attachEmergencyPhoto(emergencyId: number, photoPath: string) {
+  try {
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return { success: false, error: "Not authenticated." };
+    }
+
+    const { data: resident } = await supabase
+      .from("tbl_resident")
+      .select("id")
+      .eq("user_id", user.id)
+      .single();
+
+    if (!resident) {
+      return { success: false, error: "Resident not found." };
+    }
+
+    const supabaseAdmin = await createAdminClient();
+
+    const { error } = await supabaseAdmin
+      .from("tbl_emergency_req")
+      .update({ photo_emergency: photoPath })
+      .eq("id", emergencyId)
+      .eq("resident_id", resident.id);
+
+    if (error) {
+      console.error("Failed to attach photo path:", error.message);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("Attach photo error:", err);
+    return { success: false, error: err?.message || "Unknown error." };
   }
 }

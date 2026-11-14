@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { createEmergencyRequest } from "@/app/actions/resident";
+import { createEmergencyRequest, attachEmergencyPhoto } from "@/app/actions/resident";
 import { logout } from "@/app/actions/auth";
+import {createClient} from "@/utils/supabase/client";
+
 
 export interface EmergencyCategory {
   id: string;
@@ -237,7 +239,7 @@ export default function ReportingDashboard() {
   };
 
   // 2. Form Submission Management
-  const handleFinalSubmit = async (e: React.FormEvent) => {
+   const handleFinalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting || !chosenCategory) return;
 
@@ -245,15 +247,36 @@ export default function ReportingDashboard() {
     setReportError(null);
 
     try {
-      // 💡 NOTE: description and capturedPhoto are saved locally in component state.
-      // Once you support multi-param objects on your backend, update this action call to pass them down:
-      // eg: const result = await createEmergencyRequest({ category: chosenCategory, description, photo: capturedPhoto, coords });
       const coords = await fetchCoordinates(); // Fetch current coordinates before submission
-      const result = await createEmergencyRequest(chosenCategory, coords, description, file);
-      
-      if (result.success) {
-        router.push(`/resident/call/${result.roomId}?token=${result.livekitToken}`);
+      const result = await createEmergencyRequest(chosenCategory, coords, description);
+
+      if (!result.success) {
+        setReportError(result.error || "Could not submit your report.");
+        setIsSubmitting(false);
+        return;
       }
+
+      // Use `file` (the actual File object) for uploading, NOT `capturedPhoto`
+      if (result.isNewRequest && file && file.size > 0 && result.emergencyId && result.residentId) {
+        const supabase = createClient();
+        const fileExt = file.name.split(".").pop() || "jpg";
+        const filePath = `${result.residentId}/${Date.now()}.${fileExt}`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("emergency-photos")
+          .upload(filePath, file, {
+            contentType: file.type || "image/jpeg",
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error("Photo upload failed:", uploadError.message);
+        } else if (uploadData) {
+          await attachEmergencyPhoto(result.emergencyId, uploadData.path);
+        }
+      }
+
+      router.push(`/resident/call/${result.roomId}?token=${result.livekitToken}`);
     } catch (error) {
       console.error("Failed to create emergency request:", error);
       setReportError(
