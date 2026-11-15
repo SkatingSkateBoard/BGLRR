@@ -8,6 +8,7 @@ import {endLiveKitRoom} from "@/app/actions/livekit";
 import styles from "./page.module.css";
 import {useCallRecorder} from "@/app/hooks/useCallRecorder";
 import { useKrispNoiseFilter } from "@livekit/components-react/krisp";
+import { Track } from "livekit-client";
 /*---------------------------------------------------------------------------------------------------------------------------------------------------*/
 
 /* Placeholder for the Live Location Tracking map. Swap the inside of this
@@ -77,15 +78,17 @@ function OperatorCallInterface({ roomId }: { roomId: string }) {
   const [time, setTime] = useState(0);
   const { start, stopAndUpload } = useCallRecorder(room, requestId);
 
-  const {setNoiseFilterEnabled } = useKrispNoiseFilter();
+// Inside OperatorCallInterface:
+const micTrack = localParticipant?.getTrackPublication(Track.Source.Microphone);
+const { isNoiseFilterEnabled, setNoiseFilterEnabled, isNoiseFilterPending } = useKrispNoiseFilter();
 
-    useEffect(() => {
-    if (room && room.state === "connected") {
-      setNoiseFilterEnabled(true).catch((err) => {
-        console.warn("Krisp noise filter not supported or failed to load:", err);
-      });
-    }
-  }, [room]);
+useEffect(() => {
+  if (micTrack && !isNoiseFilterEnabled && !isNoiseFilterPending) {
+    setNoiseFilterEnabled(true).catch((err) => {
+      console.warn("Krisp noise filter not supported or failed to load:", err);
+    });
+  }
+}, [micTrack, isNoiseFilterEnabled, isNoiseFilterPending, setNoiseFilterEnabled]);
 
 
 

@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server"; 
 
+//announcement schema
 export interface AnnouncementRow {
   id: number;
   title: string;
@@ -57,7 +58,7 @@ export async function createAnnouncementAction(input: {
       isScheduled: input.isScheduled,
       isPushed: false,
       scheduled_at: releaseTimestamp,
-      operator_id: operatorData?.id ?? null, // Uncomment if operator_id matches auth user ID
+      operator_id: operatorData?.id ?? null,
     })
     .select()
     .single();

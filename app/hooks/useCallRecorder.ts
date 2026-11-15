@@ -7,7 +7,8 @@ import { createClient } from "@/utils/supabase/client";
 export function useCallRecorder(room: Room | undefined, requestId: number) {
   const ctxRef = useRef<AudioContext | null>(null);
   const destRef = useRef<MediaStreamAudioDestinationNode | null>(null);
-  const mergerRef = useRef<ChannelMergerNode | null>(null); 
+  const mergerRef = useRef<ChannelMergerNode | null>(null);
+  const sourcesRef = useRef<MediaStreamAudioSourceNode[]>([]);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const addedRef = useRef<Set<string>>(new Set());
@@ -18,94 +19,91 @@ export function useCallRecorder(room: Room | undefined, requestId: number) {
   const addTrack = useCallback((mst: MediaStreamTrack, channelIndex: number) => {
     if (!ctxRef.current || !mergerRef.current) return;
     if (addedRef.current.has(mst.id)) return;
-    
-    // Protect against dead tracks
     if (mst.readyState === "ended") return;
 
     addedRef.current.add(mst.id);
     try {
       const source = ctxRef.current.createMediaStreamSource(new MediaStream([mst]));
-      // Connects output 0 of source to input channelIndex of the merger node
       source.connect(mergerRef.current, 0, channelIndex);
+      sourcesRef.current.push(source); // Prevent browser GC mid-call
     } catch (e) {
       console.error(`Failed to connect channel ${channelIndex}:`, e);
-      addedRef.current.delete(mst.id); 
+      addedRef.current.delete(mst.id);
     }
   }, []);
 
   const start = useCallback(async () => {
     if (!room || recorderRef.current) return;
 
-    // 1. Force 16kHz layout directly at the mixer level for pristine Deepgram accuracy
-    const ctx = new AudioContext({ sampleRate: 16000 });
+    // 1. Native 48kHz WebRTC rate (prevents Chrome resampling distortion)
+    const ctx = new AudioContext({ sampleRate: 48000 });
     await ctx.resume();
     ctxRef.current = ctx;
 
-    // 2. Setup destination to explicitly support 2 discrete channels (Stereo)
+    // 2. Explicit 2-channel stereo destination
     const dest = ctx.createMediaStreamDestination();
     dest.channelCount = 2;
     dest.channelCountMode = "explicit";
     dest.channelInterpretation = "speakers";
     destRef.current = dest;
 
-    // 3. Create the Channel Merger Node
+    // 3. Stereo merger (0 = Left, 1 = Right)
     const merger = ctx.createChannelMerger(2);
     merger.connect(dest);
     mergerRef.current = merger;
 
-    // 4. Track local user (Operator -> Channel 0 / Left)
+    // 4. Local user (Operator -> Channel 0 / Left)
     room.localParticipant.audioTrackPublications.forEach((p) => {
       if (p.track?.mediaStreamTrack) addTrack(p.track.mediaStreamTrack, 0);
     });
 
-    // 5. Track already existing remote user (Resident -> Channel 1 / Right)
+    // 5. Existing remote user (Resident -> Channel 1 / Right)
     room.remoteParticipants.forEach((participant) =>
       participant.audioTrackPublications.forEach((p) => {
         if (p.track?.mediaStreamTrack) addTrack(p.track.mediaStreamTrack, 1);
       })
     );
 
-    // 6. Listener for any audio tracks arriving dynamically later
+    // 6. Dynamic track listeners
     const onSub = (track: RemoteTrack) => {
       if (track.kind === Track.Kind.Audio && track.mediaStreamTrack) {
-        // Since the resident is remote to this client, they go to Channel 1
         addTrack(track.mediaStreamTrack, 1);
       }
     };
-    
+
     const onLocal = (pub: any) => {
       if (pub.track?.kind === Track.Kind.Audio && pub.track?.mediaStreamTrack) {
-        // Local participant is the operator, they go to Channel 0
         addTrack(pub.track.mediaStreamTrack, 0);
       }
     };
-    
+
     room.on(RoomEvent.TrackSubscribed, onSub);
     room.on(RoomEvent.LocalTrackPublished, onLocal);
-    
+
     cleanupRef.current = () => {
       room.off(RoomEvent.TrackSubscribed, onSub);
       room.off(RoomEvent.LocalTrackPublished, onLocal);
     };
 
-    // 7. Check browser streaming types (Ensures compatibility for Safari vs Chrome)
+    // 7. Browser-compatible codec selection
     if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
       mimeRef.current = "audio/webm;codecs=opus";
     } else if (MediaRecorder.isTypeSupported("audio/mp4;codecs=mp4a.40.2")) {
-      mimeRef.current = "audio/mp4;codecs=mp4a.40.2"; 
+      mimeRef.current = "audio/mp4;codecs=mp4a.40.2";
     } else {
       mimeRef.current = "audio/mp4";
     }
 
+    // 64kbps gives 32kbps per channel so Tagalog consonants stay crisp
     const recorder = new MediaRecorder(destRef.current.stream, {
       mimeType: mimeRef.current,
-      audioBitsPerSecond: 32000, 
+      audioBitsPerSecond: 64000,
     });
-    
+
     recorder.ondataavailable = (e) => {
       if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
     };
-    
+
     recorder.start(5000);
     recorderRef.current = recorder;
   }, [room, addTrack]);
@@ -116,6 +114,9 @@ export function useCallRecorder(room: Room | undefined, requestId: number) {
 
     await new Promise<void>((resolve) => {
       recorder.onstop = () => resolve();
+      if (recorder.state === "recording") {
+        recorder.requestData(); // Flush final audio buffer before stopping
+      }
       recorder.stop();
     });
 
@@ -123,7 +124,10 @@ export function useCallRecorder(room: Room | undefined, requestId: number) {
     cleanupRef.current?.();
     cleanupRef.current = null;
     addedRef.current.clear();
-    
+
+    sourcesRef.current.forEach((s) => s.disconnect());
+    sourcesRef.current = [];
+
     await ctxRef.current?.close();
     ctxRef.current = null;
     mergerRef.current = null;
@@ -135,8 +139,7 @@ export function useCallRecorder(room: Room | undefined, requestId: number) {
 
     const path = `request-${requestId}/${Date.now()}.${ext}`;
     const supabase = createClient();
-    
-    // 1. Upload the stereo recording directly to your Supabase Storage Bucket
+
     const { error } = await supabase.storage
       .from("call-recordings")
       .upload(path, blob, { contentType: mimeRef.current });
@@ -146,10 +149,8 @@ export function useCallRecorder(room: Room | undefined, requestId: number) {
       return null;
     }
 
-    // 2. FIXED: Removed the old HTTP api endpoint fetch request entirely.
-    // Simply pass the storage path string string directly back to the component context.
     return path;
-  }, [requestId, room]);
+  }, [requestId]);
 
   return { start, stopAndUpload };
 }

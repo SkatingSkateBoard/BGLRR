@@ -32,8 +32,13 @@ async function transcribeWithDeepgram(
   ["utterances", "true"],
   ["utt_split", "1.2"],
   ["language", "multi"],
-  ["language_hint", "tl"], 
-  ["language_hint", "en"]  
+
+  //keyterms temp
+  ["keyterm", "rinig"],
+  ["keyterm", "saklolo"],
+  ["keyterm", "sunog"],
+  ["keyterm", "ambulansya"],
+  ["keyterm", "barangay"],
   ]);
 
   // FIX: Convert ArrayBuffer to a Node Buffer for stable HTTP transmission
@@ -59,7 +64,14 @@ async function transcribeWithDeepgram(
 export async function endLiveKitRoom(requestId: number, storagePath?: string | null) {
   try {
     console.log(`[Server Action] Starting termination sequence for Request ID: ${requestId}`);
+    
     const supabase = await createServerSideClient();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { success: false, error: "Unauthorized" };
+    }
+    
     const api = new LiveKitAPI();
 
     try {
