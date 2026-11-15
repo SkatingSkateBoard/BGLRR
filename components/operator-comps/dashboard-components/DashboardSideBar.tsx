@@ -6,6 +6,7 @@ import { SideBarItem } from "./SideBarItem";
 import { EmergenciesScreen } from "./Emergencies";
 import { RegisteredScreen } from "./Residents";
 import { logout } from "@/app/actions/auth"; // 1. Update this to the actual path of your auth action file
+import { AnnouncementsScreen } from "./Announcements";
 
 type SectionId = "emergencies" | "history" | "residents" | "announcement" | "analytics" | "appointment";
 
@@ -98,7 +99,13 @@ function DashboardSectionContent({ section }: { section: SectionId }) {
             return (
                 <div className={contentClass}><RegisteredScreen/></div>
             );
-            
+
+        case "announcement":
+            return (
+                <div className={`${contentClass}`}>
+                    <AnnouncementsScreen />
+                </div>
+            );
         default:
             return (
                 <div className={`${contentClass} p-7`}>

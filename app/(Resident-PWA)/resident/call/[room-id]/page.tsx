@@ -11,6 +11,8 @@ import {
 } from "@livekit/components-react";
 import { useKrispNoiseFilter } from "@livekit/components-react/krisp";
 import { createClient } from "@/utils/supabase/client";
+import { Track } from 'livekit-client';
+
 import styles from "./page.module.css";
 
 interface PageProps {
@@ -29,52 +31,71 @@ export default function CallPage({ params }: PageProps) {
 
   //ping watchposition
  const lastPingTimeRef = useRef<number>(0);
+const lastCoordsRef = useRef<{ lat: number; lng: number } | null>(null);
 
- useEffect(() => {
-    if (!token || !("geolocation" in navigator)) return;
+useEffect(() => {
+  if (!token || !("geolocation" in navigator)) return;
 
-    const PING_INTERVAL_MS = 5000;
+  const PING_INTERVAL_MS = 5000;
+  // Extract numeric ID from "emergency-42" -> 42
+  const numericEmergencyId = Number(roomId.replace("emergency-", ""));
+  if (Number.isNaN(numericEmergencyId)) return;
 
-    const watchId = navigator.geolocation.watchPosition(
-      async (position) => {
-        const now = Date.now();
+  const watchId = navigator.geolocation.watchPosition(
+    async (position) => {
+      const now = Date.now();
 
-        if (now - lastPingTimeRef.current < PING_INTERVAL_MS) {
-          return;
-        }
-
-        lastPingTimeRef.current = now;
-
-        const { latitude, longitude } = position.coords;
-
-        const { error } = await supabase
-          .from("tbl_emergency_req") // Replace with your actual table name
-          .update({
-            current_latitude: latitude,
-            current_longitude: longitude,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", roomId); // Replace with the column linking the row to this call
-
-        if (error) {
-          console.error("Failed to update emergency location:", error.message);
-        }
-      },
-      (error) => {
-        console.error("GPS watch error:", error.message);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
+      if (now - lastPingTimeRef.current < PING_INTERVAL_MS) {
+        return;
       }
-    );
 
-    // Stop watching GPS as soon as the call ends or user leaves the page
-    return () => {
-      navigator.geolocation.clearWatch(watchId);
-    };
-  }, [token, roomId, supabase]);
+      const { latitude, longitude } = position.coords;
+
+      // Skip DB update if resident hasn't moved at least ~5 meters
+      const prev = lastCoordsRef.current;
+      if (
+        prev &&
+        Math.abs(latitude - prev.lat) < 0.00005 &&
+        Math.abs(longitude - prev.lng) < 0.00005
+      ) {
+        console.log("GPS ping skipped (stationary)");
+        return;
+      }
+
+      lastPingTimeRef.current = now;
+      lastCoordsRef.current = { lat: latitude, lng: longitude };
+
+      const { error } = await supabase
+        .from("tbl_emergency_req")
+        .update({
+          current_latitude: latitude,
+          current_longitude: longitude,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", numericEmergencyId);
+
+      if (error) {
+        console.error("Failed to update emergency location:", error.message);
+      }
+
+      console.log(`Updated location to (${latitude}, ${longitude}) for emergency ID ${numericEmergencyId}`);
+    },
+    (error) => {
+      console.error("GPS watch error:", error.message);
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0,
+    }
+  );
+
+  // Stop watching GPS as soon as the call ends or user leaves the page
+  return () => {
+    navigator.geolocation.clearWatch(watchId);
+  };
+}, [token, roomId]); // Removed `supabase` so watchPosition doesn't reset on re-renders
+
   
 
   if (!token) {
@@ -116,15 +137,16 @@ function CallInterface({ roomId }: { roomId: string }) {
   const [time, setTime] = useState(0);
   const [hadOperator, setHadOperator] = useState(false);
 
-  const {isNoiseFilterEnabled, setNoiseFilterEnabled } = useKrispNoiseFilter();
+  const micTrack = localParticipant?.getTrackPublication(Track.Source.Microphone);
+  const { isNoiseFilterEnabled, setNoiseFilterEnabled, isNoiseFilterPending } = useKrispNoiseFilter();
 
   useEffect(() => {
-    if (room && room.state === "connected") {
+    if (micTrack && !isNoiseFilterEnabled && !isNoiseFilterPending) {
       setNoiseFilterEnabled(true).catch((err) => {
-        console.warn("Krisp noise filter not supported or failed to load:", err);
+        console.warn('Krisp failed to load:', err);
       });
     }
-  }, [room]);
+  }, [micTrack, isNoiseFilterEnabled, isNoiseFilterPending, setNoiseFilterEnabled]);
 
   useEffect(() => {
     const timer = setInterval(() => setTime((prev) => prev + 1), 1000);
@@ -218,12 +240,18 @@ function CallInterface({ roomId }: { roomId: string }) {
           {formatTime(time)}
         </div>
       </div>
-      
-       <div className="mt-3 flex items-center justify-center gap-1.5 px-3 py-1 rounded-full border text-xs font-medium tracking-wide transition-all">
+
+      // Krisp Noise Filter Status Indicator 
+      <div className="mt-3 flex items-center justify-center gap-1.5 px-3 py-1 rounded-full border text-xs font-medium tracking-wide transition-all">
         {isNoiseFilterEnabled ? (
           <>
             <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
             <span className="text-emerald-400 font-mono uppercase">Krisp Processing Active</span>
+          </>
+        ) : isNoiseFilterPending ? (
+          <>
+            <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse" />
+            <span className="text-amber-400 font-mono uppercase">Initializing Krisp...</span>
           </>
         ) : (
           <>
@@ -232,6 +260,7 @@ function CallInterface({ roomId }: { roomId: string }) {
           </>
         )}
       </div>
+
 
       {/* Control Actions Row */}
       <div className="flex items-center justify-center gap-10 w-full mt-auto">
