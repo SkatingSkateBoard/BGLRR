@@ -11,7 +11,7 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "This is the resident PWA for emergency reporting in Barangay Greater Lagro",
     theme_color: "#000000",
     background_color: "#000000",
-    
+    id: "/resident",
     start_url: "/resident",
     scope: "/resident",
     

@@ -12,8 +12,6 @@ LIVEKIT_URL = "wss://bglrr-47geizud.livekit.cloud"
 NEXT_PUBLIC_LIVEKIT_URL = "wss://bglrr-47geizud.livekit.cloud"
 NEXT_PUBLIC_SUPABASE_URL = "https://eijkkwpxlazgigqfjelf.supabase.co"
 
-
-//stuff
 [secrets]
 required = [
   "LIVEKIT_API_KEY",
