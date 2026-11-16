@@ -47,10 +47,13 @@ export async function proxy(request: NextRequest) {
   }
 
   if (error || !userId) {
-    return NextResponse.redirect(new URL('/resident/login', request.url))
+    const loginPath = pathname.startsWith('/resident')
+    ? '/resident/login'
+    : '/operator/login';
+    return NextResponse.redirect(new URL(loginPath, request.url));
   }
 
-  const role = claims?.user_metadata?.role
+  const role = claims?.app_metadata?.role
   const ROLES = ["resident", "operator", "admin"]
 
   //default paths based on role
@@ -58,15 +61,11 @@ export async function proxy(request: NextRequest) {
     if (role === 'resident') return NextResponse.redirect(new URL('/resident/dashboard', request.url));
     if (role === 'operator') return NextResponse.redirect(new URL('/operator/dashboard', request.url));
     if (role === 'admin') return NextResponse.redirect(new URL('/admin/create', request.url));
-  } 
+  }
 
-
-  const currentPath = ROLES.find(role => pathname.startsWith(`/${role}`));
-  if (currentPath) {
-    const userRole = claims?.user_metadata?.role;
-    if (userRole !== currentPath) {
-      return NextResponse.redirect(new URL('/unauthorized', request.url));
-    }
+  const currentPath = ROLES.find((r) => pathname.startsWith(`/${r}`));
+  if (currentPath && role !== currentPath) {
+    return NextResponse.redirect(new URL('/unauthorized', request.url));
   }
 
   return response;
