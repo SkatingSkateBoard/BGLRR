@@ -45,3 +45,7 @@ export async function createOperator(formData: FormData) {
     return { success: false, error: 'An unexpected error occurred.' }
   }
 }
+
+export async function createResponder(formData: FormData) {
+
+}
