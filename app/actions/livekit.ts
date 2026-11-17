@@ -90,26 +90,22 @@ async function summarizeEmergencyCall(
 
   const dialogue = transcript.map((t) => `${t.role}: ${t.text}`).join("\n");
 
-    const prompt = `You are an official Barangay Emergency & BPSO (Barangay Public Safety Officer) Blotter Clerk in Quezon City, Metro Manila. Convert the following Taglish emergency call transcript between an Operator and a Resident into a standardized, audit-ready Barangay Incident Log for official documentation.
+  const prompt = `Summarize this Taglish emergency call transcript into a clean, minimalist incident report for rapid response dispatchers.
 
-Strict Rules:
-- Accurately interpret Tagalog, English, and Taglish slang, idioms, or minor speech-to-text spelling errors (e.g., phonetic Tagalog words).
-- Stick 100% to facts stated in the call. Write "Not specified" or "None reported" if information was not mentioned—NEVER guess or invent details.
-- Distinguish clearly between what the Resident reported vs. what the Operator instructed or confirmed.
-- Use plain text only (no markdown bolding, bullet asterisks, or extra commentary).
+    Rules:
+    - Understand Tagalog, English, and Taglish slang or minor speech-to-text typos.
+    - Only include facts stated in the call. Write "Not specified" or "None" if missing—never guess.
+    - Plain text only (no markdown bolding, asterisks, or extra intro/outro text).
 
-Output in this exact Barangay Incident Log format:
+    Output in this exact 4-line format:
 
-NATURE OF INCIDENT: [e.g., Fire / Medical Emergency / Vehicular Accident / Domestic Disturbance / Crime / Flood / Rescue]
-PRIORITY LEVEL: [LOW | MEDIUM | HIGH | CRITICAL]
-EXACT LOCATION: [House/Unit No., Street, Purok/Sitio, Barangay, or nearest Quezon City landmark; otherwise "Not specified"]
-REPORTING PARTY: [Name, contact info, or relationship to victim if stated; otherwise "Resident (Unidentified)"]
-INVOLVED / VICTIMS: [Number of persons affected, injuries, trapped individuals, or suspects; otherwise "None reported"]
-INCIDENT NARRATIVE: [2-3 objective, third-person sentences summarizing what happened, when it started, and current on-site conditions, written like an official blotter entry]
-DISPATCH / ACTION TAKEN: [Units requested or promised by Operator (e.g., Barangay Tanod, BDRRMC, BFP, PNP, EMS) and immediate safety instructions given to the caller]
+    INCIDENT: [Fire | Medical | Vehicular Accident | Crime/Disturbance | Flood/Rescue | Other] - [LOW | MEDIUM | HIGH | CRITICAL]
+    LOCATION: [Exact street, barangay, or landmark mentioned, or "Not specified"]
+    SITUATION: [1-2 short, clear sentences on what happened and any injuries/trapped persons]
+    ACTION: [Responders dispatched/needed and instructions given by Operator]
 
-Transcript:
-${dialogue}`;
+    Transcript:
+    ${dialogue}`;
 
 
   try {
