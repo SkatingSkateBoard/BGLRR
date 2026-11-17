@@ -78,7 +78,11 @@ async function transcribeWithDeepgram(
 async function summarizeEmergencyCall(
   transcript: { role: string; text: string }[]
 ): Promise<string> {
-  if (!transcript || transcript.length === 0) {
+  const cleanTranscript = (transcript ?? []).filter(
+  (t) => t.text && t.text.trim().length > 0
+);
+
+  if (cleanTranscript.length === 0) {
     return "No speech detected.";
   }
 
@@ -96,6 +100,7 @@ async function summarizeEmergencyCall(
     - Understand Tagalog, English, and Taglish slang or minor speech-to-text typos.
     - Only include facts stated in the call. Write "Not specified" or "None" if missing—never guess.
     - Plain text only (no markdown bolding, asterisks, or extra intro/outro text).
+    - If there is no text or any given just say "No speech detected to summarize."
 
     Output in this exact 4-line format:
 
