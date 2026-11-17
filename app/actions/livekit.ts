@@ -259,3 +259,59 @@ export async function endLiveKitRoom(requestId: number, storagePath?: string | n
     return { success: false, error: error?.message };
   }
 }
+
+export async function finalizeValidEmergency(
+  requestId: number,
+  notes: string,
+  resolvedBy: string
+) {
+  const supabase = await createServerSideClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Unauthorized" };
+
+  const admin = getAdminClient();
+  const today = new Date().toISOString().split("T").at(0) ?? null;
+
+  await admin
+    .from("tbl_emergency_result")
+    .update({
+      notes: notes.trim() || null,
+      resolved_by: resolvedBy.trim() || user.email || "Operator",
+      resolved_at: today,
+    })
+    .eq("emergency_req_id", requestId);
+
+  await admin
+    .from("tbl_emergency_req")
+    .update({ status: "resolved" })
+    .eq("id", requestId);
+
+  return { success: true };
+}
+
+export async function discardFalseAlarm(
+  requestId: number,
+  storagePath?: string | null
+) {
+  const supabase = await createServerSideClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Unauthorized" };
+
+  const admin = getAdminClient();
+
+  if (storagePath) {
+    await admin.storage.from("call-recordings").remove([storagePath]);
+  }
+
+  await admin
+    .from("tbl_emergency_result")
+    .delete()
+    .eq("emergency_req_id", requestId);
+
+  await admin
+    .from("tbl_emergency_req")
+    .delete()
+    .eq("id", requestId);
+
+  return { success: true };
+}
