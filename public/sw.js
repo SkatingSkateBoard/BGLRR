@@ -27,7 +27,7 @@ self.addEventListener("push", (event) => {
   const title = data.title || "🚨 Emergency Dispatch Alert";
   const options = {
     body: data.body || "New emergency on standby — Tap to claim now.",
-    icon: "/icon-192x192.png", // ✅ Replace with your actual icon path in /public
+    icon: "/icon512_rounded.png", 
     badge: "/icon-192x192.png",
     vibrate: EMERGENCY_VIBRATION,
     requireInteraction: true,
