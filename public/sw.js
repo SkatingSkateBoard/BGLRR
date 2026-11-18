@@ -1,7 +1,5 @@
 // public/sw.js
 
-// Urgent, non-Morse alarm pattern: [vibrate, pause, vibrate, pause, ...] in ms.
-// Three rapid pulses, a short hold, then two long pulses.
 const EMERGENCY_VIBRATION = [
   250, 100, 250, 100, 250, // rapid triple pulse
   400,                     // hold
@@ -29,9 +27,11 @@ self.addEventListener("push", (event) => {
   const title = data.title || "🚨 Emergency Dispatch Alert";
   const options = {
     body: data.body || "New emergency on standby — Tap to claim now.",
+    icon: "/icon-192x192.png", // ✅ Replace with your actual icon path in /public
+    badge: "/icon-192x192.png",
     vibrate: EMERGENCY_VIBRATION,
     requireInteraction: true,
-    renotify: true, // re-alert (vibrate/sound) even when reusing the same tag
+    renotify: true,
     silent: false,
     tag: data.emergencyId ? `emergency-${data.emergencyId}` : "dispatch-alert",
     data: {
@@ -49,10 +49,10 @@ self.addEventListener("notificationclick", (event) => {
   event.waitUntil(
     self.clients
       .matchAll({ type: "window", includeUncontrolled: true })
-      .then((clientList) => {
+      .then(async (clientList) => {
         for (const client of clientList) {
           if (client.url.includes("/responder") && "focus" in client) {
-            client.navigate(targetUrl);
+            await client.navigate(targetUrl); // ✅ Wait for ?claim=ID to load first
             return client.focus();
           }
         }
@@ -61,4 +61,4 @@ self.addEventListener("notificationclick", (event) => {
         }
       })
   );
-});
+}); // ✅ Don't forget this closing brace & parenthesis!
