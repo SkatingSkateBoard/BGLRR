@@ -11,7 +11,7 @@ webpush.setVapidDetails(
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.SUPABASE_SECRET_KEY!
 );
 
 export interface EmergencyReqInput {
@@ -23,7 +23,7 @@ export interface EmergencyReqInput {
 // 1. Send VAPID push notifications to all responders
 export async function notifyResponders(emergency: EmergencyReqInput) {
   const { data: rows, error } = await supabaseAdmin
-    .from('push_subscriptions')
+    .from('tbl_push_subscriptions')
     .select('id, endpoint, p256dh, auth')
     .eq('role', 'responder');
 
@@ -65,7 +65,7 @@ export async function notifyResponders(emergency: EmergencyReqInput) {
         sentCount++;
       } catch (err: any) {
         if (err.statusCode === 410 || err.statusCode === 404) {
-          await supabaseAdmin.from('push_subscriptions').delete().eq('id', row.id);
+          await supabaseAdmin.from('tbl_push_subscriptions').delete().eq('id', row.id);
         }
       }
     })
@@ -83,7 +83,7 @@ export async function savePushSubscription(subData: {
   auth: string;
 }) {
   const { error } = await supabaseAdmin
-    .from('push_subscriptions')
+    .from('tbl_push_subscriptions')
     .upsert(
       {
         resident_id: subData.userId ?? null,
@@ -123,3 +123,4 @@ export async function claimStandbyEmergency(emergencyId: number, responderId: nu
 
   return { success: true, emergency: data };
 }
+
