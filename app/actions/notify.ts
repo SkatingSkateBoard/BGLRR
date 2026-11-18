@@ -1,18 +1,7 @@
 'use server';
 
 import * as webpush from 'web-push';
-import { createClient } from '@supabase/supabase-js';
-
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT!,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-);
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SECRET_KEY!
-);
+import { createAdminClient, createClient } from '@/utils/supabase/server';
 
 export interface EmergencyReqInput {
   id: number | string;
@@ -22,6 +11,14 @@ export interface EmergencyReqInput {
 
 // 1. Send VAPID push notifications to all responders
 export async function notifyResponders(emergency: EmergencyReqInput) {
+  // ✅ Initialize inside the function so Cloudflare runtime secrets exist
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT!,
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+    process.env.VAPID_PRIVATE_KEY!
+  );
+  const supabaseAdmin = createAdminClient();
+
   const { data: rows, error } = await supabaseAdmin
     .from('tbl_push_subscriptions')
     .select('id, endpoint, p256dh, auth')
@@ -82,11 +79,15 @@ export async function savePushSubscription(subData: {
   p256dh: string;
   auth: string;
 }) {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const supabaseAdmin = createAdminClient(); // ✅ Inside function
+
   const { error } = await supabaseAdmin
     .from('tbl_push_subscriptions')
     .upsert(
       {
-        resident_id: subData.userId ?? null,
+        user_id: userData?.user?.id ?? subData.userId ?? null, // ✅ Uses session user ID first, falls back to passed userId
         role: subData.role,
         endpoint: subData.endpoint,
         p256dh: subData.p256dh,
@@ -101,6 +102,8 @@ export async function savePushSubscription(subData: {
 
 // 3. Atomically claim an 'on-standby' emergency and set status to 'resolving'
 export async function claimStandbyEmergency(emergencyId: number, responderId: number) {
+  const supabaseAdmin = createAdminClient(); // ✅ Inside function
+
   const { data, error } = await supabaseAdmin
     .from('tbl_emergency_req')
     .update({
@@ -123,4 +126,3 @@ export async function claimStandbyEmergency(emergencyId: number, responderId: nu
 
   return { success: true, emergency: data };
 }
-
