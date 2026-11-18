@@ -439,7 +439,7 @@ function PostCallDispositionScreen({
     if (disposition === "FALSE_ALARM") {
       await discardFalseAlarm(requestId, storagePath);
     } else {
-      await finalizeValidEmergency(requestId, notes, officerName);
+      await finalizeValidEmergency(requestId, notes);
     }
 
     router.push("/operator/dashboard");

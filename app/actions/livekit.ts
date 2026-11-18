@@ -259,32 +259,45 @@ export async function endLiveKitRoom(requestId: number, storagePath?: string | n
     return { success: false, error: error?.message };
   }
 }
+import { notifyResponders } from "@/app/actions/notify";
 
 export async function finalizeValidEmergency(
   requestId: number,
   notes: string,
-  resolvedBy: string
 ) {
   const supabase = await createServerSideClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Unauthorized" };
 
   const admin = getAdminClient();
-  const today = new Date().toISOString().split("T").at(0) ?? null;
 
   await admin
     .from("tbl_emergency_result")
     .update({
       notes: notes.trim() || null,
-      resolved_by: resolvedBy.trim() || user.email || "Operator",
-      resolved_at: today,
     })
     .eq("emergency_req_id", requestId);
 
-  await admin
+  // 1. Update status to "on-standby" AND fetch category/description in one query
+  const { data: emergency, error } = await admin
     .from("tbl_emergency_req")
-    .update({ status: "resolved" })
-    .eq("id", requestId);
+    .update({ status: "on-standby" })
+    .eq("id", requestId)
+    .select("id, category, resident_description")
+    .single();
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  // 2. Send push notifications to all responders!
+  if (emergency) {
+    await notifyResponders({
+      id: emergency.id,
+      category: emergency.category,
+      resident_description: emergency.resident_description,
+    });
+  }
 
   return { success: true };
 }
