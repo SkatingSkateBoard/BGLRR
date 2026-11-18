@@ -1,6 +1,6 @@
 'use server';
 
-import webpush from 'web-push';
+import * as webpush from 'web-push';
 import { createClient } from '@supabase/supabase-js';
 
 webpush.setVapidDetails(

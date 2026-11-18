@@ -73,7 +73,6 @@ export async function createResponder(formData: FormData): Promise<Result> {
 
   const { error: insertError } = await supabaseAdmin.from("tbl_responder").insert({
     user_id: user.id,
-    email,
     first_name: firstName,
     middle_name: middleName,
     surname,

@@ -40,7 +40,7 @@ export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
   //public paths
-  const publicPaths = ['/resident/login', '/operator/login', '/unauthorized', '/resident/signup', '/resident/otp']
+  const publicPaths = ['/resident/login', '/operator/login', '/unauthorized', '/resident/signup', '/resident/otp', 'responder/login']
 
   if (publicPaths.includes(pathname)) {
     return response;
@@ -61,6 +61,7 @@ export async function proxy(request: NextRequest) {
     if (role === 'resident') return NextResponse.redirect(new URL('/resident/dashboard', request.url));
     if (role === 'operator') return NextResponse.redirect(new URL('/operator/dashboard', request.url));
     if (role === 'admin') return NextResponse.redirect(new URL('/admin/create', request.url));
+    if (role === 'responder') return NextResponse.redirect(new URL('/responder/dashboard', request.url));
   }
 
   const currentPath = ROLES.find((r) => pathname.startsWith(`/${r}`));
