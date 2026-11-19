@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils"; // <-- 1. Add this import
+import ServiceWorkerUpdater from "@/components/Service-Worker/serviceWorkerUpdater";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -34,19 +35,20 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  userScalable: false, // 📱 Explicit lock preventing accidental multi-touch pinch jumps
+  userScalable: false,
   interactiveWidget: "overlays-content",
 };
 
-// 🛠️ Standardized Next.js children layout prop type to ensure clean compilation builds
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
       className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", inter.variable)}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <ServiceWorkerUpdater /> {/* <-- 2. Add this component */}
+        {children}
+      </body>
     </html>
   );
 }
-

@@ -1,4 +1,5 @@
 // public/sw.js
+const SW_VERSION = "v1"; // <-- Change to "v2", "v3", etc. every time you push to Cloudflare
 
 const EMERGENCY_VIBRATION = [
   250, 100, 250, 100, 250, // rapid triple pulse
@@ -11,7 +12,11 @@ self.addEventListener("install", () => {
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(cacheNames.map((cache) => caches.delete(cache)));
+    }).then(() => self.clients.claim())
+  );
 });
 
 self.addEventListener("push", (event) => {
@@ -52,7 +57,7 @@ self.addEventListener("notificationclick", (event) => {
       .then(async (clientList) => {
         for (const client of clientList) {
           if (client.url.includes("/responder") && "focus" in client) {
-            await client.navigate(targetUrl); // ✅ Wait for ?claim=ID to load first
+            await client.navigate(targetUrl);
             return client.focus();
           }
         }
@@ -61,4 +66,4 @@ self.addEventListener("notificationclick", (event) => {
         }
       })
   );
-}); // ✅ Don't forget this closing brace & parenthesis!
+});
