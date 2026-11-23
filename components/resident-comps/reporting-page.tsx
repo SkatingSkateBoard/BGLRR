@@ -293,8 +293,8 @@ export default function ReportingDashboard() {
     await logout();
   };
   return (
-    <div className="h-[100vh] h-[100dvh] overflow-y-auto overscroll-contain flex justify-center text-[#0a0a0a] bg-white motion-reduce:transition-none relative">
-      <div className="w-full max-w-[420px] min-h-max px-[1.4rem] pb-8 flex flex-col relative">
+    <div className="h-dvh overflow-y-auto overscroll-contain flex justify-center text-[#0a0a0a] bg-white motion-reduce:transition-none relative">
+      <div className="w-full max-w-105 min-h-max px-[1.4rem] pb-8 flex flex-col relative">
         
         {/* 💡 Native HTML Media Capture Hook Node */}
         <input
@@ -310,7 +310,18 @@ export default function ReportingDashboard() {
         <header className="relative pt-4 z-10" ref={menuRef}>
           <button
             type="button"
-            className="box-border w-11 h-11 -ml-2 flex flex-col justify-center items-center gap-[5px] cursor-pointer [-webkit-tap-highlight-color:transparent] active:opacity-55 focus-visible:outline focus-visible:outline-3 focus-visible:outline-[#111] focus-visible:outline-offset-2 focus-visible:rounded-lg"
+            className="absolute right-0 top-4 grid h-11 w-11 place-items-center text-zinc-800"
+            aria-label="Open announcement inbox"
+            onClick={() => router.push("/resident/announcements")}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.311 6.022c1.733.64 3.56 1.085 5.455 1.31m5.713 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+            </svg>
+          </button>
+
+          <button
+            type="button"
+            className="box-border w-11 h-11 -ml-2 flex flex-col justify-center items-center gap-1.25 cursor-pointer [-webkit-tap-highlight-color:transparent] active:opacity-55 focus-visible:outline-solid focus-visible:outline-3 focus-visible:outline-[#111] focus-visible:outline-offset-2 focus-visible:rounded-lg"
             aria-label="Open menu"
             aria-expanded={isMenuOpen}
             onClick={(e) => {
@@ -318,14 +329,14 @@ export default function ReportingDashboard() {
               setIsMenuOpen((open) => !open);
             }}
           >
-            <span className="block w-6 h-[3px] rounded-[2px] bg-[#111]" />
-            <span className="block w-6 h-[3px] rounded-[2px] bg-[#111]" />
-            <span className="block w-6 h-[3px] rounded-[2px] bg-[#111]" />
+            <span className="block w-6 h-0.75 rounded-xs bg-[#111]" />
+            <span className="block w-6 h-0.75 rounded-xs bg-[#111]" />
+            <span className="block w-6 h-0.75 rounded-xs bg-[#111]" />
           </button>
 
           {/* Action Dropdown Menu */}
           <div
-            className={`absolute top-[calc(100%+4px)] left-0 min-w-[170px] p-1.5 rounded-[16px] border border-[rgba(255,255,255,0.85)] bg-gradient-to-br from-[#fbfcff] to-[#d9e1ed] shadow-[8px_10px_22px_rgba(100,115,140,0.35),-4px_-4px_12px_rgba(255,255,255,0.8),inset_1px_1px_0_rgba(255,255,255,0.9)] transform-gpu origin-top-left transition-all duration-140 ${
+            className={`absolute top-[calc(100%+4px)] left-0 min-w-[170px] p-1.5 rounded-2xl border border-[rgba(255,255,255,0.85)] bg-linear-to-br from-[#fbfcff] to-[#d9e1ed] shadow-[8px_10px_22px_rgba(100,115,140,0.35),-4px_-4px_12px_rgba(255,255,255,0.8),inset_1px_1px_0_rgba(255,255,255,0.9)] transform-gpu origin-top-left transition-all duration-140 ${
               isMenuOpen ? "opacity-100 visible translate-y-0 scale-100" : "opacity-0 invisible -translate-y-1.5 scale-[0.97]"
             }`}
             role="menu"
@@ -333,7 +344,29 @@ export default function ReportingDashboard() {
             <button
               type="button"
               role="menuitem"
-              className="box-border block w-full px-4 py-3 border border-[#a92828] rounded-[12px] cursor-pointer font-extrabold text-white bg-gradient-to-br from-[#f05b5b] via-[#c93636]_55% to-[#a92323] shadow-[0_4px_8px_rgba(169,35,35,0.35),inset_0_1px_0_rgba(255,255,255,0.45)] active:translate-y-[1px] active:shadow-[inset_3px_3px_6px_rgba(100,10,10,0.45)] focus-visible:outline focus-visible:outline-3 focus-visible:outline-[#111] focus-visible:outline-offset-2"
+              className="box-border mb-1.5 block w-full rounded-[12px] bg-white/80 px-4 py-3 text-left font-bold text-zinc-800 hover:bg-white"
+              onClick={() => {
+                setIsMenuOpen(false);
+                router.push("/resident/settings");
+              }}
+            >
+              Account & App Settings
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              className="box-border mb-1.5 block w-full rounded-[12px] bg-white/80 px-4 py-3 text-left font-bold text-zinc-800 hover:bg-white"
+              onClick={() => {
+                setIsMenuOpen(false);
+                router.push("/resident/history");
+              }}
+            >
+              Emergency History
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              className="box-border block w-full px-4 py-3 border border-[#a92828] rounded-xl cursor-pointer font-extrabold text-white bg-linear-to-br from-[#f05b5b] via-[#c93636]_55% to-[#a92323] shadow-[0_4px_8px_rgba(169,35,35,0.35),inset_0_1px_0_rgba(255,255,255,0.45)] active:translate-y-px active:shadow-[inset_3px_3px_6px_rgba(100,10,10,0.45)] focus-visible:outline-solid focus-visible:outline-3 focus-visible:outline-[#111] focus-visible:outline-offset-2"
               onClick={handleLogout}
             >
               Log Out
@@ -343,7 +376,7 @@ export default function ReportingDashboard() {
 
         {/* Dynamic Context View */}
         <main className="flex-1 flex flex-col">
-          <h1 className="my-4 mb-[1.9rem] text-center text-[1.45rem] leading-[1.25] font-extrabold">
+          <h1 className="my-4 mb-[1.9rem] text-center text-[1.45rem] leading-tight font-extrabold">
             Pindutin ng kategorya para
             <br />
             masimulan ang inyong report.
@@ -381,7 +414,7 @@ export default function ReportingDashboard() {
                   }}
                 >
                   <span
-                    className={`relative w-full aspect-[1.22/1] ${categories.length === 5 && index === 4 ? "max-w-[172px]" : ""} grid place-items-center rounded-[26px] border bg-gradient-to-br transition-all duration-140 before:content-[''] before:absolute before:inset-0 before:rounded-inherit before:bg-gradient-to-b before:from-white/22 before:to-transparent before:to-[45%] before:pointer-events-none group-hover:brightness-104 group-focus-visible:outline group-focus-visible:outline-3 group-focus-visible:outline-[#111] group-focus-visible:outline-offset-[3px] motion-reduce:transition-none ${
+                    className={`relative w-full aspect-[1.22/1] ${categories.length === 5 && index === 4 ? "max-w-[172px]" : ""} grid place-items-center rounded-[26px] border bg-linear-to-br transition-all duration-140 before:content-[''] before:absolute before:inset-0 before:rounded-inherit before:bg-linear-to-b before:from-white/22 before:to-transparent before:to-[45%] before:pointer-events-none group-hover:brightness-104 group-focus-visible:outline-solid group-focus-visible:outline-3 group-focus-visible:outline-[#111] group-focus-visible:outline-offset-[3px] motion-reduce:transition-none ${
                       currentTone.border
                     } ${currentTone.bgGradient} ${
                       isPressed
@@ -403,18 +436,22 @@ export default function ReportingDashboard() {
           </div>
         </main>
 
+        <p className="mt-auto pt-8 pb-4 text-center text-sm font-semibold italic tracking-wide text-zinc-500">
+          pindot mo, rescue ko
+        </p>
+
         {/* SLIDING BOTTOM FORM SHEET POPUP */}
         {isPopupOpen && (
           <div className="absolute inset-0 bg-black/50 backdrop-blur-xs flex items-end justify-center z-50">
             <form 
               onSubmit={handleFinalSubmit}
-              className="w-full bg-white rounded-t-[32px] p-6 shadow-[0_-8px_32px_rgba(0,0,0,0.15)] flex flex-col gap-4 border-t border-zinc-100 max-w-[420px]"
+              className="w-full bg-white rounded-t-4xl p-6 shadow-[0_-8px_32px_rgba(0,0,0,0.15)] flex flex-col gap-4 border-t border-zinc-100 max-w-105"
             >
               <div className="w-12 h-1.5 bg-zinc-200 rounded-full mx-auto mb-1" />
               <h3 className="text-[1.3rem] font-extrabold text-center tracking-tight text-black">I-report ang Detalye</h3>
 
               {capturedPhoto && (
-                <div className="relative w-full aspect-video rounded-[24px] overflow-hidden border border-zinc-100 bg-zinc-50 shadow-xs">
+                <div className="relative w-full aspect-video rounded-3xl overflow-hidden border border-zinc-100 bg-zinc-50 shadow-xs">
                   <img src={capturedPhoto} alt="Snapshot Preview" className="w-full h-full object-cover" />
                   <button
                     type="button"
@@ -437,7 +474,7 @@ export default function ReportingDashboard() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="I-larawan ang detalye ng emergency dito (Hal. may usok sa gusali, aksidente sa daan)..."
-                  className="w-full border border-zinc-200 p-3 rounded-[16px] text-sm focus:outline-none focus:border-zinc-800 bg-zinc-50 text-[#0a0a0a] resize-none leading-relaxed"
+                  className="w-full border border-zinc-200 p-3 rounded-2xl text-sm focus:outline-none focus:border-zinc-800 bg-zinc-50 text-[#0a0a0a] resize-none leading-relaxed"
                 />
               </div>
 
