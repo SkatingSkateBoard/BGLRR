@@ -8,6 +8,7 @@ import { RegisteredScreen } from "./Residents";
 import { logout } from "@/app/actions/auth"; // 1. Update this to the actual path of your auth action file
 import { AnnouncementsScreen } from "./Announcements";
 import { HistoryPage } from "./History";
+import { BlotterScreen } from "./Blotter";
 type SectionId = "emergencies" | "history" | "residents" | "announcement" | "analytics" | "appointment";
 
 export function DashboardSideBar() {
@@ -58,7 +59,7 @@ export function DashboardSideBar() {
                     <div className={`${headerSidebarClass}`}>
                         <p className={sideBarSectionTitleClass}>Pending</p>
                         <SideBarItem id="residents" label="Residents" icon={UserSearch} selected={selected} onSelect={setSelected} itemClass={sideBarItemClass} />
-                        {/* <SideBarItem id="appointment" label="Blotter Appointments" icon={CalendarClock} selected={selected} onSelect={setSelected} itemClass={sideBarItemClass} /> */}
+                        { <SideBarItem id="appointment" label="Blotter Appointments" icon={CalendarClock} selected={selected} onSelect={setSelected} itemClass={sideBarItemClass} /> }
                     </div>
 
                     {/* TOOL */}
@@ -112,6 +113,12 @@ function DashboardSectionContent({ section }: { section: SectionId }) {
                     <HistoryPage />
                 </div>
             );
+        case "appointment": 
+            return (
+                <div>
+                    <BlotterScreen/>
+                </div>
+            )
         default:
             return (
                 <div className={`${contentClass} p-7`}>

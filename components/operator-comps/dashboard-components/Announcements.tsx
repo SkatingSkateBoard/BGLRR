@@ -68,13 +68,18 @@ export function AnnouncementsScreen() {
     setIsSubmitting(true);
 
     try {
+       const isoScheduledAt =
+        releaseMode === "scheduled" && scheduledDateTime
+          ? new Date(scheduledDateTime).toISOString()
+          : undefined;
+
       if (editingId !== null) {
         const updated = await updateAnnouncementAction({
           id: editingId,
           title: title.trim(),
           description: description.trim(),
           isScheduled: releaseMode === "scheduled",
-          scheduledAt: scheduledDateTime,
+          scheduledAt: isoScheduledAt,
         });
 
         setAnnouncements((prev) =>
@@ -85,7 +90,7 @@ export function AnnouncementsScreen() {
           title: title.trim(),
           description: description.trim(),
           isScheduled: releaseMode === "scheduled",
-          scheduledAt: scheduledDateTime,
+          scheduledAt: isoScheduledAt,
         });
 
         setAnnouncements((prev) => [created, ...prev]);

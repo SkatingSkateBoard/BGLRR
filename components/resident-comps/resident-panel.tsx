@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { getAnnouncementsAction, type AnnouncementRow } from "@/app/actions/announcement-actions";
 
-export type ResidentPanel = "account" | "history" | "announcements";
+export type ResidentPanel = "account" | "history" | "announcements" | "blotter";
 
 interface ResidentPanelsProps {
   panel: ResidentPanel;

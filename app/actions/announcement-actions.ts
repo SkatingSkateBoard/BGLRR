@@ -3,6 +3,18 @@
 import { createClient } from "@/utils/supabase/server"; 
 import { notifyResidents } from "./notify";
 
+function parseManilaTimestamp(scheduledAt?: string): string {
+  if (!scheduledAt) return new Date().toISOString();
+
+  // If it already includes 'Z' or a timezone offset like '+08:00', parse directly
+  const hasTimezone = /Z$|[+-]\d{2}:\d{2}$/.test(scheduledAt);
+  if (hasTimezone) {
+    return new Date(scheduledAt).toISOString();
+  }
+
+  // Otherwise treat naive datetime-local strings as Philippine Time (UTC+8)
+  return new Date(`${scheduledAt}+08:00`).toISOString();
+}
 //announcement schema
 export interface AnnouncementRow {
   id: number;
@@ -50,7 +62,7 @@ export async function createAnnouncementAction(input: {
 
   const releaseTimestamp =
     input.isScheduled && input.scheduledAt
-      ? new Date(input.scheduledAt).toISOString()
+      ? parseManilaTimestamp(input.scheduledAt)
       : new Date().toISOString();
 
   const { data, error } = await supabase
@@ -106,7 +118,7 @@ export async function updateAnnouncementAction(input: {
 
   const releaseTimestamp =
     input.isScheduled && input.scheduledAt
-      ? new Date(input.scheduledAt).toISOString()
+      ? parseManilaTimestamp(input.scheduledAt)
       : new Date().toISOString();
 
   const { data, error } = await supabase
