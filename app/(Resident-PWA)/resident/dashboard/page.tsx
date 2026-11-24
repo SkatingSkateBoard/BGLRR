@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { isResidentVerified } from "@/app/actions/auth";
 import ReportingDashboard from "@/components/resident-comps/reporting-page";
-
+import { ResidentPushBanner } from "@/components/resident-comps/resident-push-banner";
 type VerificationStatus = "verified" | "pending" | "rejected" | null;
 
 export default function ReportingPage() {
@@ -138,5 +138,10 @@ export default function ReportingPage() {
     );
   }
 
-  return <ReportingDashboard />;
+  return (
+    <>
+      <ResidentPushBanner />
+      <ReportingDashboard />
+    </>
+  );
 }
