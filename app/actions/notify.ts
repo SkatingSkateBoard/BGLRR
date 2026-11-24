@@ -9,9 +9,14 @@ export interface EmergencyReqInput {
   resident_description?: string;
 }
 
-// 1. Send VAPID push notifications to all responders
+export interface AnnouncementInput {
+  id: number | string;
+  title: string;
+  description?: string;
+}
+
+// 1. Send VAPID push notifications to all responders (Unchanged)
 export async function notifyResponders(emergency: EmergencyReqInput) {
-  // ✅ Initialize inside the function so Cloudflare runtime secrets exist
   webpush.setVapidDetails(
     process.env.VAPID_SUBJECT!,
     process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
@@ -33,6 +38,7 @@ export async function notifyResponders(emergency: EmergencyReqInput) {
     : 'EMERGENCY';
 
   const payload = JSON.stringify({
+    type: 'emergency',
     title: `🚨 Standby [${categoryLabel}] — Request #${emergency.id}`,
     body: emergency.resident_description
       ? `"${emergency.resident_description}" — Tap to claim now.`
@@ -46,19 +52,63 @@ export async function notifyResponders(emergency: EmergencyReqInput) {
   await Promise.all(
     rows.map(async (row) => {
       try {
-        const subscription = {
-          endpoint: row.endpoint,
-          keys: {
-            p256dh: row.p256dh,
-            auth: row.auth,
+        await webpush.sendNotification(
+          {
+            endpoint: row.endpoint,
+            keys: { p256dh: row.p256dh, auth: row.auth },
           },
-        };
+          payload,
+          { TTL: 60, urgency: 'high' }
+        );
+        sentCount++;
+      } catch (err: any) {
+        if (err.statusCode === 410 || err.statusCode === 404) {
+          await supabaseAdmin.from('tbl_push_subscriptions').delete().eq('id', row.id);
+        }
+      }
+    })
+  );
 
-        await webpush.sendNotification(subscription, payload, {
-          TTL: 60,
-          urgency: 'high',
-        });
+  return { success: true, sentCount };
+}
+export async function notifyResidents(announcement: AnnouncementInput) {
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT!,
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+    process.env.VAPID_PRIVATE_KEY!
+  );
+  const supabaseAdmin = createAdminClient();
 
+  const { data: rows, error } = await supabaseAdmin
+    .from('tbl_push_subscriptions')
+    .select('id, endpoint, p256dh, auth')
+    .eq('role', 'resident');
+
+  if (error || !rows?.length) {
+    return { success: false, sentCount: 0, error: error?.message };
+  }
+
+  const payload = JSON.stringify({
+    type: 'announcement',
+    title: `📢 ${announcement.title}`,
+    body: announcement.description || 'New community announcement posted.',
+    announcementId: announcement.id,
+    url: '/resident', // Change to '/resident/announcements' if you have a dedicated page
+  });
+
+  let sentCount = 0;
+
+  await Promise.all(
+    rows.map(async (row) => {
+      try {
+        await webpush.sendNotification(
+          {
+            endpoint: row.endpoint,
+            keys: { p256dh: row.p256dh, auth: row.auth },
+          },
+          payload,
+          { TTL: 3600, urgency: 'normal' }
+        );
         sentCount++;
       } catch (err: any) {
         if (err.statusCode === 410 || err.statusCode === 404) {
@@ -71,7 +121,7 @@ export async function notifyResponders(emergency: EmergencyReqInput) {
   return { success: true, sentCount };
 }
 
-// 2. Save responder or resident push subscription to Supabase
+// 3. Save responder or resident push subscription to Supabase
 export async function savePushSubscription(subData: {
   userId?: number | string | null;
   role: 'responder' | 'resident';
@@ -81,13 +131,13 @@ export async function savePushSubscription(subData: {
 }) {
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
-  const supabaseAdmin = createAdminClient(); // ✅ Inside function
+  const supabaseAdmin = createAdminClient();
 
   const { error } = await supabaseAdmin
     .from('tbl_push_subscriptions')
     .upsert(
       {
-        user_id: userData?.user?.id ?? subData.userId ?? null, // ✅ Uses session user ID first, falls back to passed userId
+        user_id: userData?.user?.id ?? subData.userId ?? null,
         role: subData.role,
         endpoint: subData.endpoint,
         p256dh: subData.p256dh,
@@ -100,9 +150,9 @@ export async function savePushSubscription(subData: {
   return { success: true };
 }
 
-// 3. Atomically claim an 'on-standby' emergency and set status to 'resolving'
+// 4. Atomically claim an 'on-standby' emergency and set status to 'resolving'
 export async function claimStandbyEmergency(emergencyId: number, responderId: number) {
-  const supabaseAdmin = createAdminClient(); // ✅ Inside function
+  const supabaseAdmin = createAdminClient();
 
   const { data, error } = await supabaseAdmin
     .from('tbl_emergency_req')

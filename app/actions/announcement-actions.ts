@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server"; 
+import { notifyResidents } from "./notify";
 
 //announcement schema
 export interface AnnouncementRow {
@@ -27,7 +28,7 @@ export async function getAnnouncementsAction(): Promise<AnnouncementRow[]> {
   }
 
   return data || [];
-}
+} 
 
 export async function createAnnouncementAction(input: {
   title: string;
@@ -39,11 +40,13 @@ export async function createAnnouncementAction(input: {
 
   // Optional: get current logged-in operator ID if linked to auth.users
   const { data: { user } } = await supabase.auth.getUser();
-  const {data: operatorData, error: operatorError } = await supabase
+  const { data: operatorData } = await supabase
     .from("tbl_operator")
     .select("id")
     .eq("user_id", user?.id)
     .single();
+
+  const isImmediate = !input.isScheduled;
 
   const releaseTimestamp =
     input.isScheduled && input.scheduledAt
@@ -56,7 +59,7 @@ export async function createAnnouncementAction(input: {
       title: input.title,
       description: input.description,
       isScheduled: input.isScheduled,
-      isPushed: false,
+      isPushed: isImmediate, // true immediately if NOT scheduled; false if scheduled
       scheduled_at: releaseTimestamp,
       operator_id: operatorData?.id ?? null,
     })
@@ -67,8 +70,18 @@ export async function createAnnouncementAction(input: {
     throw new Error(error.message);
   }
 
+  // Send push notification to residents right away if not scheduled
+  if (isImmediate && data) {
+    await notifyResidents({
+      id: data.id,
+      title: data.title,
+      description: data.description,
+    });
+  }
+
   return data as AnnouncementRow;
 }
+
 
 export async function deleteAnnouncementAction(id: number) {
   const supabase = await createClient();

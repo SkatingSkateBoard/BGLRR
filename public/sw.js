@@ -1,11 +1,13 @@
 // public/sw.js
-const SW_VERSION = "v1"; // <-- Change to "v2", "v3", etc. every time you push to Cloudflare
+const SW_VERSION = "v2"; // <-- Bumped so browsers install the new SW immediately
 
 const EMERGENCY_VIBRATION = [
-  250, 100, 250, 100, 250, // rapid triple pulse
-  400,                     // hold
-  700, 150, 700,           // long urgent pulses
+  250, 100, 250, 100, 250,
+  400,
+  700, 150, 700,
 ];
+
+const ANNOUNCEMENT_VIBRATION = [200, 100, 200];
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -29,18 +31,31 @@ self.addEventListener("push", (event) => {
     data = { title: "Emergency Dispatch Alert", body: event.data.text() };
   }
 
-  const title = data.title || "🚨 Emergency Dispatch Alert";
+  const isAnnouncement = data.type === "announcement";
+
+  const title =
+    data.title ||
+    (isAnnouncement ? "📢 Community Announcement" : "🚨 Emergency Dispatch Alert");
+
   const options = {
-    body: data.body || "New emergency on standby — Tap to claim now.",
-    icon: "/icon512_rounded.png", 
+    body:
+      data.body ||
+      (isAnnouncement
+        ? "New community announcement posted."
+        : "New emergency on standby — Tap to claim now."),
+    icon: "/icon512_rounded.png",
     badge: "/icon-192x192.png",
-    vibrate: EMERGENCY_VIBRATION,
-    requireInteraction: true,
+    vibrate: isAnnouncement ? ANNOUNCEMENT_VIBRATION : EMERGENCY_VIBRATION,
+    requireInteraction: !isAnnouncement,
     renotify: true,
     silent: false,
-    tag: data.emergencyId ? `emergency-${data.emergencyId}` : "dispatch-alert",
+    tag: isAnnouncement
+      ? `announcement-${data.announcementId || "general"}`
+      : data.emergencyId
+      ? `emergency-${data.emergencyId}`
+      : "dispatch-alert",
     data: {
-      url: data.url || "/responder",
+      url: data.url || (isAnnouncement ? "/resident" : "/responder"),
     },
   };
 
@@ -50,13 +65,14 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const targetUrl = event.notification.data?.url || "/responder";
+  const basePath = targetUrl.startsWith("/resident") ? "/resident" : "/responder";
 
   event.waitUntil(
     self.clients
       .matchAll({ type: "window", includeUncontrolled: true })
       .then(async (clientList) => {
         for (const client of clientList) {
-          if (client.url.includes("/responder") && "focus" in client) {
+          if (client.url.includes(basePath) && "focus" in client) {
             await client.navigate(targetUrl);
             return client.focus();
           }
