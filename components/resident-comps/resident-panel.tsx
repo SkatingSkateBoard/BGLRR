@@ -57,7 +57,7 @@ export function ResidentPanels({ panel, fullScreen = false }: ResidentPanelsProp
 
         {panel === "account" && (
           <div className="space-y-4">
-            <div className="flex items-center gap-3 rounded-2xl border border-zinc-200 p-4">
+            <div className="flex items-center gap-3 rounded-2xl border border-zinc-200 p-4 shadow-sm">
               <div className="grid h-12 w-12 place-items-center rounded-full bg-[#2020a2] text-lg font-bold text-white">JR</div>
               <div>
                 <p className="font-bold text-zinc-900">Juan Resident</p>
@@ -65,7 +65,7 @@ export function ResidentPanels({ panel, fullScreen = false }: ResidentPanelsProp
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-zinc-200">
+            <div className="overflow-hidden rounded-2xl border border-zinc-200 shadow-sm">
               {[
                 ["Profile information", "Name, phone, and address"],
                 ["Notifications", "Emergency and barangay alerts"],
@@ -95,7 +95,7 @@ export function ResidentPanels({ panel, fullScreen = false }: ResidentPanelsProp
         {panel === "history" && (
           <div className="space-y-3">
             {emergencyHistory.map((item) => (
-              <article key={item.id} className="rounded-2xl border border-zinc-200 p-4">
+              <article key={item.id} className="rounded-2xl border border-zinc-200 p-4 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-bold text-zinc-900">{item.category}</p>
@@ -122,7 +122,7 @@ export function ResidentPanels({ panel, fullScreen = false }: ResidentPanelsProp
                   ["Community Road Closure", "A portion of Regalado Avenue will be closed for maintenance from 8:00 AM to 5:00 PM.", "Today"],
                   ["Barangay Health Schedule", "Free blood pressure checkups are available at the community center.", "Yesterday"],
                 ].map(([titleText, detail, date]) => (
-                  <article key={titleText} className="rounded-2xl border border-zinc-200 p-4">
+                  <article key={titleText} className="rounded-2xl border border-zinc-200 p-4 shadow-sm">
                     <p className="font-bold text-zinc-900">{titleText}</p>
                     <p className="mt-2 text-sm leading-relaxed text-zinc-600">{detail}</p>
                     <p className="mt-3 text-xs text-zinc-400">{date}</p>
@@ -131,7 +131,7 @@ export function ResidentPanels({ panel, fullScreen = false }: ResidentPanelsProp
               </>
             ) : (
               announcements.map((item) => (
-                <article key={item.id} className="rounded-2xl border border-zinc-200 p-4">
+                <article key={item.id} className="rounded-2xl border border-zinc-200 p-4 shadow-sm">
                   <p className="font-bold text-zinc-900">{item.title}</p>
                   <p className="mt-2 text-sm leading-relaxed text-zinc-600">{item.description}</p>
                   <p className="mt-3 text-xs text-zinc-400">{new Date(item.scheduled_at).toLocaleString()}</p>
