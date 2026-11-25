@@ -12,8 +12,8 @@ interface ResidentPanelsProps {
 
 type PermState = "granted" | "denied" | "prompt" | "unsupported";
 type PermissionKey = "notifications" | "location" | "microphone";
-type Platform = "ios" | "android" | "desktop";
 type BadgeTone = "ok" | "bad" | "warn" | "idle";
+type Context = "ios-app" | "ios-browser" | "android-app" | "android-browser" | "desktop";
 
 type HelpModalState = {
   title: string;
@@ -33,33 +33,54 @@ const emergencyHistory = [
   { id: "EM-0994", category: "Krimen", status: "Resolved", date: "Nov 12, 2026", detail: "Suspicious activity report" },
 ];
 
-const getPlatform = (): Platform => {
+const getContext = (): Context => {
   const ua = navigator.userAgent;
-  if (/iPad|iPhone|iPod/.test(ua)) return "ios";
-  if (/Android/.test(ua)) return "android";
+  const isIOS = /iPad|iPhone|iPod/.test(ua);
+  const isAndroid = /Android/.test(ua);
+  const standalone =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+  if (isIOS) return standalone ? "ios-app" : "ios-browser";
+  if (isAndroid) return standalone ? "android-app" : "android-browser";
   return "desktop";
 };
 
 const buildEnableSteps = (key: PermissionKey): string[] => {
   const label = PERMISSION_LABELS[key];
-  switch (getPlatform()) {
-    case "ios":
+
+  switch (getContext()) {
+    case "ios-app":
       return [
         "Open your iPhone Settings app.",
         "Scroll down and tap BGLRR.",
         `Tap ${label} and set it to Allow.`,
       ];
-    case "android":
+    case "ios-browser":
+      return [
+        "Tap the aA button in the address bar.",
+        "Tap Website Settings.",
+        `Set ${label} to Allow.`,
+        "Reload the page.",
+      ];
+    case "android-app":
       return [
         "Long-press the BGLRR app icon on your home screen.",
-        "Tap App info (ⓘ) → Permissions.",
-        `Enable ${label}.`,
+        "Tap App info (ⓘ), then Permissions.",
+        `Turn on ${label}.`,
+      ];
+    case "android-browser":
+      return [
+        "Tap the lock or tune icon next to the address bar.",
+        "Tap Permissions.",
+        `Set ${label} to Allow.`,
+        "Reload the page.",
       ];
     default:
       return [
         "Click the lock or settings icon next to the URL bar.",
-        "Open Site Settings.",
-        `Set ${label} to Allow, then refresh the page.`,
+        "Open Site settings.",
+        `Set ${label} to Allow, then reload the page.`,
       ];
   }
 };
@@ -157,7 +178,7 @@ export function ResidentPanels({ panel, fullScreen = false }: ResidentPanelsProp
     };
   }, [panel]);
 
-  // Live permission states. Re-read when the user comes back to the app,
+  // Live permission states. Re-read when the user returns to the app,
   // so changes made in phone or browser settings show up.
   useEffect(() => {
     if (panel !== "account") return;
@@ -194,14 +215,14 @@ export function ResidentPanels({ panel, fullScreen = false }: ResidentPanelsProp
   }, [panel]);
 
   const handleNotifications = async () => {
-    if (!("Notification" in window)) {
+    if (!("Notification" in window) || getContext() === "ios-browser") {
       setHelpModal({
-        title: "Install the app first",
-        message: "Alerts on iPhone and iPad need the app added to your Home Screen.",
+        title: "Add the app to your Home Screen",
+        message: "Alerts on iPhone only work after you add BGLRR to your Home Screen.",
         steps: [
           "Tap the Share button at the bottom of Safari.",
-          "Choose 'Add to Home Screen'.",
-          "Open BGLRR from your Home Screen and try again.",
+          "Tap 'Add to Home Screen'.",
+          "Open BGLRR from your Home Screen and turn on Notifications.",
         ],
       });
       return;
