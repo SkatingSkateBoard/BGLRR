@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { getAnnouncementsAction, type AnnouncementRow } from "@/app/actions/announcement-actions";
+import { usePreviewMode } from "@/lib/usePreviewMode";
 
 export type ResidentPanel = "account" | "history" | "announcements";
 
@@ -17,15 +19,23 @@ const emergencyHistory = [
 ];
 
 export function ResidentPanels({ panel, fullScreen = false }: ResidentPanelsProps) {
+  const router = useRouter();
+  const previewMode = usePreviewMode();
   const [announcements, setAnnouncements] = useState<AnnouncementRow[]>([]);
+  const [selectedSetting, setSelectedSetting] = useState<string | null>(null);
 
   useEffect(() => {
-    if (panel !== "announcements") return;
+    const isPreviewSession =
+      process.env.NODE_ENV !== "production" &&
+      (previewMode ||
+        document.cookie.split("; ").includes("bglrr_preview=1") ||
+        new URLSearchParams(window.location.search).get("preview") === "1");
+    if (panel !== "announcements" || isPreviewSession) return;
 
     getAnnouncementsAction().then((rows) => {
       setAnnouncements(rows);
     });
-  }, [panel]);
+  }, [panel, previewMode]);
 
   const title =
     panel === "account"
@@ -35,12 +45,18 @@ export function ResidentPanels({ panel, fullScreen = false }: ResidentPanelsProp
         : "Announcement Inbox";
 
   return (
-    <main className={fullScreen ? "min-h-screen bg-white text-[#0a0a0a]" : "absolute inset-0 z-[60] flex items-end justify-center bg-black/35 backdrop-blur-[2px]"}>
+    <main className={fullScreen ? "min-h-screen bg-white text-[#0a0a0a]" : "absolute inset-0 z-60 flex items-end justify-center bg-black/35 backdrop-blur-[2px]"}>
       <section className={fullScreen ? "mx-auto min-h-screen w-full max-w-105 overflow-y-auto px-6 py-5 pb-10" : "max-h-[82dvh] w-full max-w-105 overflow-y-auto rounded-t-[28px] bg-white p-5 pb-8 shadow-[0_-12px_40px_rgba(0,0,0,0.18)]"}>
         {fullScreen ? (
           <button
             type="button"
-            onClick={() => window.history.back()}
+            onClick={() => {
+              if (previewMode) {
+                router.push("/resident/dashboard?preview=1");
+              } else {
+                window.history.back();
+              }
+            }}
             className="mb-6 inline-flex items-center gap-2 rounded-full bg-zinc-100 px-4 py-2 text-sm font-bold text-zinc-800"
           >
             <span aria-hidden="true">←</span> Back
@@ -75,6 +91,9 @@ export function ResidentPanels({ panel, fullScreen = false }: ResidentPanelsProp
                 <button
                   key={label}
                   type="button"
+                  onClick={() => {
+                    if (previewMode) setSelectedSetting(label);
+                  }}
                   className={`flex w-full items-center justify-between px-4 py-4 text-left ${index > 0 ? "border-t border-zinc-200" : ""}`}
                 >
                   <span>
@@ -86,7 +105,21 @@ export function ResidentPanels({ panel, fullScreen = false }: ResidentPanelsProp
               ))}
             </div>
 
-            <button type="button" className="w-full rounded-xl border border-red-200 py-3 font-bold text-red-600">
+            {previewMode && selectedSetting && (
+              <p role="status" className="rounded-xl bg-blue-50 p-3 text-sm text-blue-900">
+                {selectedSetting === "Delete account"
+                  ? "Account deletion is disabled in preview."
+                  : `${selectedSetting} opened in preview. No changes are saved.`}
+              </p>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                if (previewMode) setSelectedSetting("Delete account");
+              }}
+              className="w-full rounded-xl border border-red-200 py-3 font-bold text-red-600"
+            >
               Delete account
             </button>
           </div>

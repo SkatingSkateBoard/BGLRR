@@ -1,6 +1,6 @@
 import { type LucideIcon } from "lucide-react";
 
-type SectionId = "emergencies" | "residents" | "announcement" | "analytics" | "appointment" | "history" ;
+type SectionId = "emergencies" | "residents" | "blotters" | "announcement" | "analytics" | "appointment" | "history" ;
 
 export function SideBarItem({
     id, label, icon: Icon, selected, onSelect, itemClass,

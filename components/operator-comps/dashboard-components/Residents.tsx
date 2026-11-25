@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { approveResident, rejectResident } from "@/app/actions/verify";
+import { usePreviewMode } from "@/lib/usePreviewMode";
 
 type AddressInfo = {
   id: number;
@@ -36,6 +37,7 @@ type Resident = {
 
 export function RegisteredScreen() {
   const supabase = createClient();
+  const previewMode = usePreviewMode();
 
   const [residents, setResidents] = useState<Resident[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,6 +116,14 @@ export function RegisteredScreen() {
   }, []);
 
   const handleStatusChange = async (id: number, actionType: "approve" | "reject", reason?: string) => {
+    if (previewMode) {
+      setResidents((prev) => prev.filter((resident) => resident.id !== id));
+      setSelectedResident(null);
+      setIsRejecting(false);
+      setReason("");
+      return;
+    }
+
     setBusyId(id);
     try {
       if (actionType === "approve") {
@@ -187,7 +197,7 @@ export function RegisteredScreen() {
           )}
         </section>
 
-        <section className="w-full lg:w-[450px] shrink-0">
+        <section className="w-full lg:w-112.5 shrink-0">
           {selectedResident ? (
             <div className="sticky top-6 p-6 border border-gray-200 rounded-2xl bg-white shadow-sm">
               <div className="flex justify-between items-start mb-6">
@@ -313,6 +323,7 @@ export function RegisteredScreen() {
                 ) : (
                   <div className="flex gap-3">
                     <button
+                      type="button"
                       className="flex-1 px-4 py-2.5 rounded-xl text-white font-bold disabled:opacity-50 bg-blue-600 hover:bg-blue-700 shadow-sm"
                       disabled={busyId === selectedResident.id}
                       onClick={() => handleStatusChange(selectedResident.id, "approve")}

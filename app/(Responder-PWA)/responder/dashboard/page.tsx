@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { savePushSubscription, claimStandbyEmergency } from '@/app/actions/notify';
+import { usePreviewMode } from '@/lib/usePreviewMode';
 
 interface EmergencyReq {
   id: number;
@@ -14,7 +15,7 @@ interface EmergencyReq {
   created_at: string;
 }
 
-type PushStatus = 'checking' | 'subscribed' | 'unsubscribed' | 'denied' | 'unsupported' | 'insecure';
+type PushStatus = 'checking' | 'subscribed' | 'unsubscribed' | 'denied' | 'unsupported' | 'insecure' | 'preview';
 
 const VIBRATION_PATTERN = [250, 100, 250, 100, 250, 400, 700, 150, 700];
 
@@ -41,6 +42,7 @@ function timeAgo(iso: string) {
 
 export default function TemporaryResponderScreen() {
   const supabase = createClient();
+  const previewMode = usePreviewMode();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const [pushStatus, setPushStatus] = useState<PushStatus>('checking');
@@ -51,6 +53,11 @@ export default function TemporaryResponderScreen() {
   const [bannerMessage, setBannerMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const fetchStandbyEmergencies = useCallback(async () => {
+    if (previewMode) {
+      setBannerMessage({ type: 'success', text: 'Preview only: the dispatch queue is not connected.' });
+      return;
+    }
+
     const { data, error } = await supabase
       .from('tbl_emergency_req')
       .select('id, category, status, resident_description, current_latitude, current_longitude, created_at')
@@ -63,10 +70,14 @@ export default function TemporaryResponderScreen() {
       return;
     }
     if (data) setStandbyList(data);
-  }, [supabase]);
+  }, [previewMode, supabase]);
 
   // Initial load and push status check
   useEffect(() => {
+    if (previewMode) {
+      return;
+    }
+
     fetchStandbyEmergencies();
 
     if (!window.isSecureContext) {
@@ -90,11 +101,13 @@ export default function TemporaryResponderScreen() {
       const sub = await reg.pushManager.getSubscription();
       setPushStatus(sub ? 'subscribed' : 'unsubscribed');
     });
-  }, [fetchStandbyEmergencies]);
+  }, [fetchStandbyEmergencies, previewMode]);
 
   // Realtime feed: plays the alert and shows a local notification
   // when an emergency goes on standby while the page is hidden.
   useEffect(() => {
+    if (previewMode) return;
+
     const channel = supabase
       .channel('responder-standby-feed')
       .on(
@@ -133,9 +146,15 @@ export default function TemporaryResponderScreen() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase, fetchStandbyEmergencies]);
+  }, [supabase, fetchStandbyEmergencies, previewMode]);
 
   const handleEnableAlerts = async () => {
+    if (previewMode) {
+      setPushStatus('preview');
+      setBannerMessage({ type: 'success', text: 'Preview only: dispatch alerts are simulated on this screen.' });
+      return;
+    }
+
     setSubscribing(true);
     setBannerMessage(null);
 
@@ -194,6 +213,15 @@ export default function TemporaryResponderScreen() {
   };
 
   const handleClaim = async (emergencyId: number) => {
+    if (previewMode) {
+      setStandbyList((prev) => prev.filter((item) => item.id !== emergencyId));
+      setBannerMessage({
+        type: 'success',
+        text: `Preview only: Emergency #${emergencyId} was claimed locally; no dispatch was sent.`,
+      });
+      return;
+    }
+
     setClaimingId(emergencyId);
     setBannerMessage(null);
 
@@ -221,6 +249,7 @@ export default function TemporaryResponderScreen() {
     denied: 'bg-red-50 text-red-700 ring-red-200',
     unsupported: 'bg-slate-100 text-slate-600 ring-slate-200',
     insecure: 'bg-red-50 text-red-700 ring-red-200',
+    preview: 'bg-indigo-50 text-indigo-700 ring-indigo-200',
   };
 
   const statusLabel: Record<PushStatus, string> = {
@@ -230,9 +259,11 @@ export default function TemporaryResponderScreen() {
     denied: 'Blocked',
     unsupported: 'Unsupported',
     insecure: 'Needs HTTPS',
+    preview: 'Preview',
   };
 
-  const pushDisabled = subscribing || pushStatus === 'unsupported' || pushStatus === 'insecure';
+  const visiblePushStatus = previewMode && pushStatus !== 'preview' ? 'unsubscribed' : pushStatus;
+  const pushDisabled = subscribing || visiblePushStatus === 'unsupported' || visiblePushStatus === 'insecure';
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -262,8 +293,8 @@ export default function TemporaryResponderScreen() {
               <h2 className="text-sm font-semibold">Dispatch Alerts</h2>
               <p className="text-xs text-slate-500">Get alerted when an emergency goes on standby.</p>
             </div>
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${statusStyles[pushStatus]}`}>
-              {statusLabel[pushStatus]}
+            <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${statusStyles[visiblePushStatus]}`}>
+              {statusLabel[visiblePushStatus]}
             </span>
           </div>
 
@@ -274,17 +305,19 @@ export default function TemporaryResponderScreen() {
           >
             {subscribing
               ? 'Enabling alerts…'
-              : pushStatus === 'subscribed'
+              : visiblePushStatus === 'preview'
+              ? 'Alerts simulated in preview'
+              : visiblePushStatus === 'subscribed'
               ? 'Re-sync this device'
               : 'Enable dispatch alerts'}
           </button>
 
-          {pushStatus === 'denied' && (
+          {visiblePushStatus === 'denied' && (
             <p className="text-xs text-red-600">
               Notifications are blocked for this site. Re-enable them in your browser's site settings, then reload.
             </p>
           )}
-          {pushStatus === 'insecure' && (
+          {visiblePushStatus === 'insecure' && (
             <p className="text-xs text-red-600">Push alerts require HTTPS or localhost.</p>
           )}
         </section>

@@ -1,16 +1,21 @@
 "use client"
 
 import * as React from "react";
-import { Cross, UserSearch, AudioLines, Megaphone, ChartColumn, CalendarClock, Radio, LogOut } from "lucide-react";
+import { UserSearch, AudioLines, Megaphone, ChartColumn, FileText, Radio, LogOut } from "lucide-react";
 import { SideBarItem } from "./SideBarItem";
 import { EmergenciesScreen } from "./Emergencies";
 import { RegisteredScreen } from "./Residents";
+import { BlottersScreen } from "./Blotters";
 import { logout } from "@/app/actions/auth"; // 1. Update this to the actual path of your auth action file
 import { AnnouncementsScreen } from "./Announcements";
 import { HistoryPage } from "./History";
-type SectionId = "emergencies" | "history" | "residents" | "announcement" | "analytics" | "appointment";
+import { useRouter } from "next/navigation";
+import { usePreviewMode } from "@/lib/usePreviewMode";
+type SectionId = "emergencies" | "history" | "residents" | "blotters" | "announcement" | "analytics" | "appointment";
 
 export function DashboardSideBar() {
+    const router = useRouter();
+    const previewMode = usePreviewMode();
     const sideBarClass =
         `shadow-xl/10 bg-radial-[at_25%_40%] from-white to-blue-900/10 border-gray-400/70 border-r-2
         relative left-0 inset-x-0 h-screen w-75 flex flex-col shrink-0 overflow-hidden justify-between
@@ -24,6 +29,11 @@ export function DashboardSideBar() {
 
     // Explicit execution block for handling Next.js server redirection cleanly
     async function handleLogout() {
+        if (previewMode) {
+            router.push("/operator/login?preview=1");
+            return;
+        }
+
         try {
             setIsLoggingOut(true);
             await logout();
@@ -50,6 +60,7 @@ export function DashboardSideBar() {
                     <div className={`${headerSidebarClass}`}>
                         <p className={sideBarSectionTitleClass}>Manage</p>
                         <SideBarItem id="emergencies" label="Emergencies" icon={Radio} selected={selected} onSelect={setSelected} itemClass={sideBarItemClass} />
+                        <SideBarItem id="blotters" label="Blotters" icon={FileText} selected={selected} onSelect={setSelected} itemClass={sideBarItemClass} />
                         <SideBarItem id="history" label="History" icon={AudioLines} selected={selected} onSelect={setSelected} itemClass={sideBarItemClass} />
                         <SideBarItem id="analytics" label="Analytics" icon={ChartColumn} selected={selected} onSelect={setSelected} itemClass={sideBarItemClass} />
                     </div>
@@ -98,6 +109,10 @@ function DashboardSectionContent({ section }: { section: SectionId }) {
         case "residents":
             return (
                 <div className={contentClass}><RegisteredScreen/></div>
+            );
+        case "blotters":
+            return (
+                <div className={contentClass}><BlottersScreen /></div>
             );
 
         case "announcement":

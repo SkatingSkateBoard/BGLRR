@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createEmergencyRequest, attachEmergencyPhoto } from "@/app/actions/resident";
 import { logout } from "@/app/actions/auth";
 import {createClient} from "@/utils/supabase/client";
+import { usePreviewMode } from "@/lib/usePreviewMode";
 
 
 export interface EmergencyCategory {
@@ -152,15 +153,28 @@ const categories: EmergencyCategory[] = [
       </svg>
     ),
   },
+  {
+    id: "blotter",
+    tone: "blotter",
+    label: "Blotter",
+    icon: () => (
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="w-[64%] h-[64%] overflow-visible drop-shadow-[0_2px_2px_rgba(0,0,0,0.25)]">
+        <path d="M7 3.5h7l4 4V21H7z" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinejoin="round" />
+        <path d="M14 3.5v4h4M10 12h5M10 15.5h5M10 19h3" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
 ];
 export default function ReportingDashboard() {
   const router = useRouter();
+  const previewMode = usePreviewMode();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // --- Pre-existing Codebase States ---
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [pressedId, setPressedId] = useState<string | null>(null);
   const [reportError, setReportError] = useState<string | null>(null);
+  const [previewMessage, setPreviewMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -207,8 +221,20 @@ export default function ReportingDashboard() {
   }, []);
 
   // 1. Core Category Event Handler (Maintains strict original function signature)
-  const handleCategoryClick = async (category: string) => {
+  const handleCategoryClick = (category: string) => {
+    if (category === "blotter") {
+      router.push("/resident/blotter");
+      return;
+    }
+
     setChosenCategory(category);
+    if (previewMode) {
+      setCapturedPhoto(null);
+      setFile(null);
+      setIsPopupOpen(true);
+      return;
+    }
+
     if (fileInputRef.current) {
       fileInputRef.current.value = ""; 
       fileInputRef.current.click(); // Triggers device native system capture sheet intent
@@ -242,6 +268,11 @@ export default function ReportingDashboard() {
    const handleFinalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting || !chosenCategory) return;
+
+     if (previewMode) {
+       setPreviewMessage("Preview only: your emergency report was not submitted.");
+       return;
+     }
 
     setIsSubmitting(true);
     setReportError(null);
@@ -290,6 +321,10 @@ export default function ReportingDashboard() {
 
   const handleLogout = async () => {
     setIsMenuOpen(false);
+    if (previewMode) {
+      router.push("/resident/login?preview=1");
+      return;
+    }
     await logout();
   };
   return (
@@ -337,14 +372,14 @@ export default function ReportingDashboard() {
           {/* Action Dropdown Menu */}
           <div
             className={`absolute top-[calc(100%+4px)] left-0 min-w-[170px] p-1.5 rounded-2xl border border-[rgba(255,255,255,0.85)] bg-linear-to-br from-[#fbfcff] to-[#d9e1ed] shadow-[8px_10px_22px_rgba(100,115,140,0.35),-4px_-4px_12px_rgba(255,255,255,0.8),inset_1px_1px_0_rgba(255,255,255,0.9)] transform-gpu origin-top-left transition-all duration-140 ${
-              isMenuOpen ? "opacity-100 visible translate-y-0 scale-100" : "opacity-0 invisible -translate-y-1.5 scale-[0.97]"
+              isMenuOpen ? "opacity-100 visible translate-y-0 scale-100" : "opacity-0 invisible -translate-y-1.5 scale-97"
             }`}
             role="menu"
           >
             <button
               type="button"
               role="menuitem"
-              className="box-border mb-1.5 block w-full rounded-[12px] bg-white/80 px-4 py-3 text-left font-bold text-zinc-800 hover:bg-white"
+              className="box-border mb-1.5 block w-full rounded-xl bg-white/80 px-4 py-3 text-left font-bold text-zinc-800 hover:bg-white"
               onClick={() => {
                 setIsMenuOpen(false);
                 router.push("/resident/settings");
@@ -355,7 +390,7 @@ export default function ReportingDashboard() {
             <button
               type="button"
               role="menuitem"
-              className="box-border mb-1.5 block w-full rounded-[12px] bg-white/80 px-4 py-3 text-left font-bold text-zinc-800 hover:bg-white"
+              className="box-border mb-1.5 block w-full rounded-xl bg-white/80 px-4 py-3 text-left font-bold text-zinc-800 hover:bg-white"
               onClick={() => {
                 setIsMenuOpen(false);
                 router.push("/resident/history");
@@ -383,7 +418,7 @@ export default function ReportingDashboard() {
           </h1>
 
           {reportError && (
-            <p className="mt-[-1rem] mb-4 p-3 border border-[#b42318] rounded-[0.75rem] text-[#8a1c13] bg-[#fff1f0] text-[0.9rem] text-center" role="alert">
+            <p className="-mt-4 mb-4 p-3 border border-[#b42318] rounded-xl text-[#8a1c13] bg-[#fff1f0] text-[0.9rem] text-center" role="alert">
               {reportError}
             </p>
           )}
@@ -418,7 +453,7 @@ export default function ReportingDashboard() {
                       currentTone.border
                     } ${currentTone.bgGradient} ${
                       isPressed
-                        ? `${currentTone.shadowPressed} translate-y-[3px]`
+                        ? `${currentTone.shadowPressed} translate-y-0.75`
                         : currentTone.shadowNormal
                     }`}
                   >
@@ -445,10 +480,17 @@ export default function ReportingDashboard() {
           <div className="absolute inset-0 bg-black/50 backdrop-blur-xs flex items-end justify-center z-50">
             <form 
               onSubmit={handleFinalSubmit}
+              data-preview-local={previewMode ? "true" : undefined}
               className="w-full bg-white rounded-t-4xl p-6 shadow-[0_-8px_32px_rgba(0,0,0,0.15)] flex flex-col gap-4 border-t border-zinc-100 max-w-105"
             >
               <div className="w-12 h-1.5 bg-zinc-200 rounded-full mx-auto mb-1" />
               <h3 className="text-[1.3rem] font-extrabold text-center tracking-tight text-black">I-report ang Detalye</h3>
+
+              {previewMessage && (
+                <p role="status" className="rounded-xl bg-amber-50 p-3 text-center text-sm text-amber-900">
+                  {previewMessage}
+                </p>
+              )}
 
               {capturedPhoto && (
                 <div className="relative w-full aspect-video rounded-3xl overflow-hidden border border-zinc-100 bg-zinc-50 shadow-xs">
@@ -481,7 +523,7 @@ export default function ReportingDashboard() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-4 mt-2 bg-[#111] text-white font-extrabold rounded-[18px] shadow-lg transition active:scale-[0.98] disabled:opacity-50 cursor-pointer text-center"
+                className="w-full py-4 mt-2 bg-[#111] text-white font-extrabold rounded-[18px] shadow-lg transition active:scale-98 disabled:opacity-50 cursor-pointer text-center"
               >
                 {isSubmitting ? "Ipinapadala..." : "Proceed to Call"}
               </button>

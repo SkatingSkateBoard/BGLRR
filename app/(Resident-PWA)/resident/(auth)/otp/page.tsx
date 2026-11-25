@@ -4,11 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import { usePreviewMode } from "@/lib/usePreviewMode";
 
 const supabase = createClient();
 
 export default function OtpPage() {
   const router = useRouter();
+  const previewMode = usePreviewMode();
   const otpInputRef = useRef<HTMLInputElement>(null);
 
   const [email, setEmail] = useState("");
@@ -29,9 +31,10 @@ export default function OtpPage() {
     }
 
     const verifiedEmail: string = savedEmail;
-    const isPreviewMode =
+    const isPreviewRequest =
       process.env.NODE_ENV !== "production" &&
-      (document.cookie.split("; ").includes("bglrr_preview=1") ||
+      (previewMode ||
+        document.cookie.split("; ").includes("bglrr_preview=1") ||
         new URLSearchParams(window.location.search).get("preview") === "1");
 
     setEmail(verifiedEmail);
@@ -40,7 +43,7 @@ export default function OtpPage() {
     otpInputRef.current?.focus();
 
     async function automaticallyResendCode() {
-      if (isPreviewMode || savedOtpSource !== "login") {
+      if (isPreviewRequest || savedOtpSource !== "login") {
         return;
       }
 
@@ -63,10 +66,17 @@ export default function OtpPage() {
     }
 
     automaticallyResendCode();
-  }, []);
+  }, [previewMode]);
 
   async function handleVerify(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (previewMode) {
+      sessionStorage.removeItem("signupEmail");
+      sessionStorage.removeItem("otpSource");
+      router.push("/resident/dashboard?preview=1");
+      return;
+    }
 
     setError("");
     setMessage("");
@@ -109,6 +119,11 @@ export default function OtpPage() {
   }
 
   async function handleResend() {
+    if (previewMode) {
+      setMessage("Preview only: no verification email was sent.");
+      return;
+    }
+
     if (!email) {
       setError("Email was not found. Please try again.");
       return;
@@ -138,9 +153,9 @@ export default function OtpPage() {
     <main className="fixed left-0 top-0 h-lvh w-screen overflow-hidden bg-white">
       {/* Background */}
       <div className="absolute left-0 top-0 h-[62vh] w-full">
-        <div className="absolute inset-0 bg-gradient-to-b from-[rgba(35,35,184,0.92)] to-white" />
+        <div className="absolute inset-0 bg-linear-to-b from-[rgba(35,35,184,0.92)] to-white" />
 
-        <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.15)_2px,transparent_1px)] [background-size:24px_24px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.15)_2px,transparent_1px)] bg-size-[24px_24px]" />
       </div>
 
       {/* Main content */}
@@ -168,6 +183,7 @@ export default function OtpPage() {
           {/* OTP form */}
           <form
             onSubmit={handleVerify}
+            data-preview-local={previewMode ? "true" : undefined}
             className="mt-14 mb-8 w-full rounded-2xl bg-white/10 p-6 backdrop-blur-[2px] sm:p-7"
           >
             <div className="mb-7 text-center">

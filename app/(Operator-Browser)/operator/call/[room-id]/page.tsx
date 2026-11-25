@@ -65,7 +65,9 @@ export default function OperatorCallPage({
   const { "room-id": roomId } = use(params);
   const token = searchParams.get("token");
   const serverUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || "ws://localhost:7880";
-  const previewMode = usePreviewMode();
+  const previewMode =
+    usePreviewMode() ||
+    (process.env.NODE_ENV !== "production" && searchParams.get("preview") === "1");
 
   const [postCall, setPostCall] = useState<{
     requestId: number;
@@ -97,6 +99,7 @@ export default function OperatorCallPage({
             roomId={roomId}
             previewMode
             onCallEnded={() => undefined}
+            onPreviewCallEnded={() => router.push("/operator/dashboard?preview=1")}
           />
         </LiveKitRoom>
       </main>
@@ -143,9 +146,11 @@ function OperatorCallInterface({
   roomId,
   onCallEnded,
   previewMode = false,
+  onPreviewCallEnded,
 }: {
   roomId: string;
   previewMode?: boolean;
+  onPreviewCallEnded?: () => void;
   onCallEnded: (data: {
     requestId: number;
     storagePath: string | null;
@@ -159,6 +164,7 @@ function OperatorCallInterface({
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
   const [time, setTime] = useState(0);
   const [ending, setEnding] = useState(false);
+  const [previewMuted, setPreviewMuted] = useState(false);
   const { start, stopAndUpload } = useCallRecorder(room, requestId);
 
   const micTrack = localParticipant?.getTrackPublication(Track.Source.Microphone);
@@ -182,7 +188,7 @@ function OperatorCallInterface({
     return () => clearInterval(timer);
   }, []);
 
-  const isMuted = !isMicrophoneEnabled;
+  const isMuted = previewMode ? previewMuted : !isMicrophoneEnabled;
 
   const formatTime = (s: number) =>
     Math.floor(s / 60).toString().padStart(2, "0") +
@@ -202,12 +208,19 @@ function OperatorCallInterface({
     .join(", ");
 
   const toggleMute = async () => {
-    if (previewMode) return;
+    if (previewMode) {
+      setPreviewMuted((muted) => !muted);
+      return;
+    }
     await localParticipant.setMicrophoneEnabled(isMuted);
   };
 
   const handleTerminate = async () => {
-    if (ending || previewMode) return;
+    if (ending) return;
+    if (previewMode) {
+      onPreviewCallEnded?.();
+      return;
+    }
     setEnding(true);
     try {
       const uploadedStoragePath = await stopAndUpload();
@@ -282,7 +295,7 @@ function OperatorCallInterface({
 
           <button
             onClick={handleTerminate}
-            disabled={ending || previewMode}
+            disabled={ending}
             title="End Call & Proceed to Post-Call Notes"
             className="flex items-center justify-center p-2.5 rounded-xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors duration-150 cursor-pointer shadow-xs disabled:opacity-50"
           >
@@ -302,7 +315,7 @@ function OperatorCallInterface({
               </span>
               <span className="inline-flex items-center gap-1.5 text-[11px] font-mono font-semibold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-md">
                 <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
-                REC ON
+                {previewMode ? "PREVIEW" : "REC ON"}
               </span>
             </div>
 
@@ -383,7 +396,6 @@ function OperatorCallInterface({
       <footer className="flex flex-wrap justify-center gap-4 pt-5 border-t border-slate-200/80 w-full">
         <button
           onClick={toggleMute}
-          disabled={previewMode}
           aria-pressed={isMuted}
           className={
             "flex items-center gap-2.5 px-6 py-3 rounded-xl border text-sm font-semibold shadow-xs transition-colors cursor-pointer " +
@@ -398,7 +410,7 @@ function OperatorCallInterface({
 
         <button
           onClick={handleTerminate}
-          disabled={ending || previewMode}
+          disabled={ending}
           className="flex items-center gap-2.5 px-7 py-3 rounded-xl border border-red-600 bg-red-600 text-white hover:bg-red-700 text-sm font-semibold shadow-sm transition-colors cursor-pointer disabled:opacity-50"
         >
           <PhoneOff className="w-4 h-4" />

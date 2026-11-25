@@ -9,10 +9,12 @@ import {
   updateAnnouncementAction,
   deleteAnnouncementAction,
 } from "@/app/actions/announcement-actions";
+import { usePreviewMode } from "@/lib/usePreviewMode";
 
 type ReleaseMode = "immediate" | "scheduled";
 
 export function AnnouncementsScreen() {
+  const previewMode = usePreviewMode();
   const [editingId, setEditingId] = React.useState<number | null>(null);
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
@@ -23,13 +25,21 @@ export function AnnouncementsScreen() {
   const [announcements, setAnnouncements] = React.useState<AnnouncementRow[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [previewNotice, setPreviewNotice] = React.useState("");
 
   React.useEffect(() => {
+    const isPreviewSession =
+      process.env.NODE_ENV !== "production" &&
+      (previewMode ||
+        document.cookie.split("; ").includes("bglrr_preview=1") ||
+        new URLSearchParams(window.location.search).get("preview") === "1");
+    if (isPreviewSession) return;
+
     getAnnouncementsAction().then((rows) => {
       setAnnouncements(rows);
       setIsLoading(false);
     });
-  }, []);
+  }, [previewMode]);
 
   const toLocalInputFormat = (isoString: string) => {
     const date = new Date(isoString);
@@ -64,6 +74,32 @@ export function AnnouncementsScreen() {
     e.preventDefault();
     if (!title.trim() || !description.trim()) return;
     if (releaseMode === "scheduled" && !scheduledDateTime) return;
+
+    if (previewMode) {
+      const scheduledAt =
+        releaseMode === "scheduled"
+          ? new Date(scheduledDateTime).toISOString()
+          : new Date().toISOString();
+      const previewRow: AnnouncementRow = {
+        id: editingId ?? Date.now(),
+        title: title.trim(),
+        description: description.trim(),
+        isScheduled: releaseMode === "scheduled",
+        isPushed: releaseMode === "immediate",
+        scheduled_at: scheduledAt,
+        created_at: new Date().toISOString(),
+      };
+
+      setAnnouncements((prev) =>
+        editingId === null
+          ? [previewRow, ...prev]
+          : prev.map((item) => (item.id === editingId ? previewRow : item))
+      );
+      setActiveTab(releaseMode === "immediate" ? "published" : "scheduled");
+      setPreviewNotice("Preview only: this announcement was not published or saved.");
+      handleCancelEdit();
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -102,6 +138,13 @@ export function AnnouncementsScreen() {
   };
 
   const handleDelete = async (id: number) => {
+    if (previewMode) {
+      setAnnouncements((prev) => prev.filter((item) => item.id !== id));
+      setPreviewNotice("Preview only: announcement removed from this screen; nothing was deleted.");
+      if (editingId === id) handleCancelEdit();
+      return;
+    }
+
     try {
       await deleteAnnouncementAction(id);
       setAnnouncements((prev) => prev.filter((item) => item.id !== id));
@@ -175,7 +218,11 @@ export function AnnouncementsScreen() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <form
+          onSubmit={handleSubmit}
+          data-preview-local={previewMode ? "true" : undefined}
+          className="grid grid-cols-1 lg:grid-cols-3 gap-5"
+        >
           <div className="lg:col-span-2 flex flex-col gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
@@ -278,6 +325,11 @@ export function AnnouncementsScreen() {
           </div>
         </form>
       </div>
+      {previewNotice && (
+        <p role="status" className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          {previewNotice}
+        </p>
+      )}
       {/* BOTTOM SECTION: TABS & ANNOUNCEMENTS TABLE */}
       <div className="flex flex-col flex-1 min-h-0">
         <div className="flex items-center gap-6 border-b border-gray-200 px-2 mb-3">
@@ -310,7 +362,7 @@ export function AnnouncementsScreen() {
         </div>
 
         <div className="flex flex-col gap-2 overflow-y-auto pr-1">
-          {isLoading ? (
+          {!previewMode && isLoading ? (
             <div className="bg-white rounded-xl border border-gray-200/80 p-8 text-center text-sm text-gray-400">
               Loading announcements...
             </div>

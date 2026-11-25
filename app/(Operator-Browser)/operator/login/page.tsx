@@ -11,9 +11,11 @@ import { login } from "@/app/actions/auth";
 import { useState } from "react";
 import type {SubmitEvent} from "react";
 import { useRouter } from "next/navigation";
+import { usePreviewMode } from "@/lib/usePreviewMode";
 
 export default function LoginPage() {
   const router = useRouter();
+  const previewMode = usePreviewMode();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,6 +24,11 @@ export default function LoginPage() {
 
   async function handleLogin(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (previewMode) {
+      router.push("/operator/dashboard?preview=1");
+      return;
+    }
 
     setLoading(true);
     setError("");
@@ -44,7 +51,7 @@ export default function LoginPage() {
     }
   }
     return (
-      <form onSubmit={handleLogin} className="relative h-screen w-full">
+      <form onSubmit={handleLogin} data-preview-local={previewMode ? "true" : undefined} className="relative h-screen w-full">
       <Image
         src="/login_bg_op.png"
         alt="Operator Login Background"

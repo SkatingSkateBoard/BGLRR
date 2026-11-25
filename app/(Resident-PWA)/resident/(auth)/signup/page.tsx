@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react';
 import { MyCarousel } from '@/components/resident-comps/Carousel';
 import {FormProvider } from '@/components/context/RegistrationContext';
 import {signUpResident} from './actions';
+import { usePreviewMode } from "@/lib/usePreviewMode";
 
 export default function RegisterPage() {
     const router = useRouter();
+    const previewMode = usePreviewMode();
     const [bgHeight, setBgHeight] = useState<number>();
 
     useEffect(() => {
@@ -48,7 +50,7 @@ export default function RegisterPage() {
                         Register your <br /> Resident Account
                     </p>
                     <FormProvider>
-                        <MyCarousel signUp={signUpResident} />
+                        <MyCarousel signUp={signUpResident} previewOnly={previewMode} />
                     </FormProvider>
                 </div>
             </div>

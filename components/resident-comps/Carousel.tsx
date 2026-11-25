@@ -35,7 +35,13 @@ function InnerCarousel({ index, register, children }: {
     </Carousel>
   )
 }
-export function MyCarousel({ signUp }: { signUp: (formData: any) => Promise<{ success: boolean; error?: string }> }) {
+export function MyCarousel({
+  signUp,
+  previewOnly = false,
+}: {
+  signUp: (formData: any) => Promise<{ success: boolean; error?: string }>;
+  previewOnly?: boolean;
+}) {
   const { formData, errors, updateForm, validateStep } = useRegistrationForm()
 
   const router = useRouter();
@@ -145,9 +151,14 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       return;
     }
 
-    
-
     setShowError(false);
+    if (previewOnly) {
+      sessionStorage.setItem("signupEmail", formData.email || "preview@example.com");
+      sessionStorage.setItem("otpSource", "signup");
+      router.push("/resident/otp?preview=1");
+      return;
+    }
+
     console.log("Submitting context form data directly to database table:", formData);
     setIsLoading(true) 
 

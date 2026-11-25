@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { logout } from "@/app/actions/auth";
 import { createOperator, createResponder } from "@/app/actions/admin";
+import { usePreviewMode } from "@/lib/usePreviewMode";
 
 type Result = { success: true; message: string } | { success: false; error: string };
 
@@ -65,15 +66,21 @@ function AccountForm({
   action: (formData: FormData) => Promise<Result>;
   buttonLabel: string;
 }) {
+  const previewMode = usePreviewMode();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
-    setLoading(true);
     setResult(null);
 
+    if (previewMode) {
+      setResult({ success: false, error: "Preview only: no account was created." });
+      return;
+    }
+
+    setLoading(true);
     const res = await action(new FormData(form));
 
     setLoading(false);
@@ -86,7 +93,11 @@ function AccountForm({
       <h2 style={{ margin: "0 0 4px" }}>{title}</h2>
       <p style={{ color: "#666", fontSize: "14px", margin: "0 0 20px" }}>{description}</p>
 
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+      <form
+        onSubmit={handleSubmit}
+        data-preview-local={previewMode ? "true" : undefined}
+        style={{ display: "flex", flexDirection: "column", gap: "14px" }}
+      >
         {fields.map((f) => (
           <div key={f.name}>
             <label htmlFor={`${title}-${f.name}`} style={label}>
@@ -139,31 +150,48 @@ const responderFields: Field[] = [
 ];
 
 export default function CreateAccountsPage() {
+  const previewMode = usePreviewMode();
+  const [previewLoggedOut, setPreviewLoggedOut] = useState(false);
+
   return (
     <main style={{ padding: "40px 16px", background: "#f6f6f6", minHeight: "100vh" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-        <AccountForm
-          title="Create Operator"
-          description="Creates a login with the operator role."
-          fields={operatorFields}
-          action={createOperator}
-          buttonLabel="Create Operator"
-        />
+        {previewLoggedOut ? (
+          <p role="status" style={{ ...card, color: "#555" }}>
+            Signed out of this preview. No account session was changed.
+          </p>
+        ) : (
+          <>
+            <AccountForm
+              title="Create Operator"
+              description="Creates a login with the operator role."
+              fields={operatorFields}
+              action={createOperator}
+              buttonLabel="Create Operator"
+            />
 
-        <AccountForm
-          title="Create Responder"
-          description="Creates a login with the responder role and a responder profile."
-          fields={responderFields}
-          action={createResponder}
-          buttonLabel="Create Responder"
-        />
+            <AccountForm
+              title="Create Responder"
+              description="Creates a login with the responder role and a responder profile."
+              fields={responderFields}
+              action={createResponder}
+              buttonLabel="Create Responder"
+            />
+          </>
+        )}
 
         <div style={{ textAlign: "center" }}>
           <button
-            onClick={() => logout()}
+            onClick={() => {
+              if (previewMode) {
+                setPreviewLoggedOut((loggedOut) => !loggedOut);
+              } else {
+                void logout();
+              }
+            }}
             style={{ ...button, background: "#e00", padding: "10px 20px" }}
           >
-            Logout
+            {previewLoggedOut ? "Return to Preview" : "Logout"}
           </button>
         </div>
       </div>

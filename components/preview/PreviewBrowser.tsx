@@ -7,6 +7,7 @@ const screens = [
   { group: "Resident", label: "Sign up", path: "/resident/signup?preview=1" },
   { group: "Resident", label: "Email verification", path: "/resident/otp?preview=1" },
   { group: "Resident", label: "Dashboard", path: "/resident/dashboard?preview=1" },
+  { group: "Resident", label: "Blotter report", path: "/resident/blotter?preview=1" },
   { group: "Resident", label: "Emergency call", path: "/resident/call/emergency-1048?preview=1" },
   { group: "Resident", label: "Emergency history", path: "/resident/history?preview=1" },
   { group: "Resident", label: "Account settings", path: "/resident/settings?preview=1" },
@@ -30,6 +31,7 @@ function clearPreviewCookie() {
 export default function PreviewBrowser() {
   const [selectedPath, setSelectedPath] = useState(screens[3].path);
   const [previewEnded, setPreviewEnded] = useState(false);
+  const [previewNotice, setPreviewNotice] = useState("");
 
   useEffect(() => {
     document.cookie = `${previewCookie}=1; Path=/; SameSite=Lax`;
@@ -49,37 +51,26 @@ export default function PreviewBrowser() {
     const frameDocument = frame.contentDocument;
     if (!frameDocument) return;
 
-    const navigationButtons = new Set([
-      "account & app settings",
-      "emergency history",
-      "announcements",
-      "analytics",
-      "back",
-      "close",
-      "emergencies",
-      "history",
-      "open announcement inbox",
-      "open menu",
-      "residents",
-    ]);
-
     frameDocument.addEventListener(
       "click",
       (event) => {
-        const button = (event.target as Element | null)?.closest("button, [role='button'], input[type='submit']");
-        if (!button) return;
-        const label = (button.textContent || button.getAttribute("aria-label") || button.getAttribute("title") || "").trim().toLowerCase();
-        if (navigationButtons.has(label)) return;
+        const target = event.target as Element | null;
+        const blockedControl = target?.closest("[data-preview-blocked]");
+        const deviceCapture = target?.closest("input[type='file'][capture]");
+        if (!blockedControl && !deviceCapture) return;
         event.preventDefault();
         event.stopImmediatePropagation();
+        setPreviewNotice("Preview only: this action would use a backend service or device feature.");
       },
       true
     );
     frameDocument.addEventListener(
       "submit",
       (event) => {
+        if ((event.target as HTMLFormElement).dataset.previewLocal === "true") return;
         event.preventDefault();
         event.stopImmediatePropagation();
+        setPreviewNotice("Preview only: this form is not connected to a backend.");
       },
       true
     );
@@ -90,7 +81,7 @@ export default function PreviewBrowser() {
       <header className="flex flex-wrap items-center gap-3 border-b border-slate-200 px-4 py-3">
         <h1 className="mr-auto text-sm font-bold">Preview mode</h1>
         <span className="hidden text-xs text-slate-500 sm:inline">
-          Actual app UI · controls disabled · preview only
+          Actual app UI · interactions are enabled, but external actions are disabled
         </span>
         <button
           type="button"
@@ -103,6 +94,15 @@ export default function PreviewBrowser() {
           Exit preview
         </button>
       </header>
+
+      {previewNotice && (
+        <p role="status" className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900">
+          {previewNotice}
+          <button type="button" onClick={() => setPreviewNotice("")} className="font-bold">
+            Dismiss
+          </button>
+        </p>
+      )}
 
       <div className="flex min-h-0 flex-1">
         <aside className="w-56 shrink-0 overflow-y-auto border-r border-slate-200 bg-slate-50 p-3">

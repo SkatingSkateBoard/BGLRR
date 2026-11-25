@@ -7,9 +7,11 @@ import { login } from "@/app/actions/auth";
 import { useState, useEffect } from "react";
 import type { FormEvent } from "react"; // Fixed to standard React FormEvent type
 import { useRouter } from "next/navigation";
+import { usePreviewMode } from "@/lib/usePreviewMode";
 
 export default function LoginPage() {
   const router = useRouter();
+  const previewMode = usePreviewMode();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,6 +21,11 @@ export default function LoginPage() {
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (previewMode) {
+      router.push("/resident/dashboard?preview=1");
+      return;
+    }
 
     setLoading(true);
     setError("");
@@ -66,8 +73,8 @@ export default function LoginPage() {
         className="absolute left-0 top-0 h-lvh w-full"
         style={{ height: bgHeight }}
       >
-        <div className="absolute inset-0 bg-gradient-to-b from-[rgba(35,35,184,0.90)] to-white" />
-        <div className="absolute inset-0 bg-transparent bg-[radial-gradient(rgba(255,255,255,0.15)_2px,transparent_1px)] [background-size:24px_24px]" />
+        <div className="absolute inset-0 bg-linear-to-b from-[rgba(35,35,184,0.90)] to-white" />
+        <div className="absolute inset-0 bg-transparent bg-[radial-gradient(rgba(255,255,255,0.15)_2px,transparent_1px)] bg-size-[24px_24px]" />
       </div>
 
       <div className="relative inset-0 flex items-center justify-center">
@@ -82,6 +89,7 @@ export default function LoginPage() {
 
           <form 
             onSubmit={handleLogin}
+            data-preview-local={previewMode ? "true" : undefined}
             className="bg-white/0 flex flex-col p-7 w-screen md:w-115 text-white mt-10 mb-30"
           >
 

@@ -8,6 +8,7 @@ import { EmergencyItem } from "./EmergencyItem"
 import MapWrapper from "../map/MapWrapper"
 import { createClient } from "@/utils/supabase/client" 
 import { acceptEmergencyRequest } from "@/app/(Operator-Browser)/operator/dashboard/actions" 
+import { usePreviewMode } from "@/lib/usePreviewMode"
 
 type TabId = "pending" | "active"
 
@@ -31,6 +32,7 @@ type EmergencyRequest = {
 const PAGE_SIZE = 10
 export function EmergenciesScreen() {
     const router = useRouter()
+    const previewMode = usePreviewMode()
     const [isPending, startTransition] = useTransition()
 
     const tabContainerClass = `shrink-0 mt-7
@@ -178,6 +180,16 @@ export function EmergenciesScreen() {
   }
 
   function handleAccept(requestId: number) : void {
+      if (previewMode) {
+        setRequests((current) =>
+          current.map((request) =>
+            request.id === requestId ? { ...request, status: "ACTIVE" } : request
+          )
+        )
+        router.push(`/operator/call/emergency-${requestId}?preview=1`)
+        return
+      }
+
       startTransition(async () => {
         try {
           // 2. Call the Server Action directly here
