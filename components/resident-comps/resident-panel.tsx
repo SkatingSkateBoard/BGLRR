@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { getAnnouncementsAction, type AnnouncementRow } from "@/app/actions/announcement-actions";
-
+import BlotterReportingForm from "@/components/resident-comps/blotter-form";
 export type ResidentPanel = "account" | "history" | "announcements" | "blotter";
 
 interface ResidentPanelsProps {
@@ -286,10 +286,12 @@ export function ResidentPanels({ panel, fullScreen = false }: ResidentPanelsProp
           : "Lets you call for help by voice.";
 
   const title =
-    panel === "account"
-      ? "Account & App Settings"
-      : panel === "history"
-        ? "Emergency History"
+  panel === "account"
+    ? "Account & App Settings"
+    : panel === "history"
+      ? "Emergency History"
+      : panel === "blotter"
+        ? "Blotter Report"
         : "Announcement Inbox";
 
   return (
@@ -442,6 +444,7 @@ export function ResidentPanels({ panel, fullScreen = false }: ResidentPanelsProp
             )}
           </div>
         )}
+        {panel === "blotter" && <BlotterReportingForm />}
       </section>
     </main>
   );

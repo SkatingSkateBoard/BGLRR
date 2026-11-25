@@ -366,6 +366,16 @@ export default function ReportingDashboard() {
             <button
               type="button"
               role="menuitem"
+              className="box-border mb-1.5 block w-full rounded-[12px] bg-white/80 px-4 py-3 text-left font-bold text-zinc-800 hover:bg-white"
+              onClick={() => {
+                setIsMenuOpen(false);
+                router.push("/pwa/resident/blotter");
+              }}
+            >Blotter Report
+            </button>
+            <button
+              type="button"
+              role="menuitem"
               className="box-border block w-full px-4 py-3 border border-[#a92828] rounded-xl cursor-pointer font-extrabold text-white bg-linear-to-br from-[#f05b5b] via-[#c93636]_55% to-[#a92323] shadow-[0_4px_8px_rgba(169,35,35,0.35),inset_0_1px_0_rgba(255,255,255,0.45)] active:translate-y-px active:shadow-[inset_3px_3px_6px_rgba(100,10,10,0.45)] focus-visible:outline-solid focus-visible:outline-3 focus-visible:outline-[#111] focus-visible:outline-offset-2"
               onClick={handleLogout}
             >
