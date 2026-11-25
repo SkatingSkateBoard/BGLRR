@@ -7,7 +7,7 @@
 import { revalidatePath } from 'next/cache';
 import { AccessToken } from 'livekit-server-sdk';
 import { createClient } from '@/utils/supabase/server';
-
+import { createAdminClient } from '@/utils/supabase/server';
 const DASHBOARD_PATH = '/pwa/responder/dashboard';
 
 const EMERGENCY_FIELDS =
@@ -161,9 +161,9 @@ export async function getResponderCallToken(
 ): Promise<ActionResult<{ token: string; serverUrl: string; roomName: string }>> {
   const ctx = await requireResponder();
   if (!ctx.ok) return { success: false, error: ctx.error };
-  const { supabase, responderId } = ctx;
-
-  const { data, error } = await supabase
+  const { responderId } = ctx;
+  const supabaseAdmin = await createAdminClient();
+  const { data, error } = await supabaseAdmin
     .from('tbl_emergency_req')
     .select('id')
     .eq('id', emergencyId)
