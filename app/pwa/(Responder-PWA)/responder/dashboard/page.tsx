@@ -13,6 +13,7 @@ import {
   resolveEmergency,
   type EmergencyRow,
 } from '@/app/actions/responder';
+import {logout} from '@/app/actions/auth';
 
 type Banner = { type: 'success' | 'error'; text: string } | null;
 type PushStatus = 'checking' | 'subscribed' | 'unsubscribed' | 'denied' | 'unsupported' | 'insecure';
@@ -281,6 +282,11 @@ export default function ResponderDashboardPage() {
         <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-red-300">Live dispatch</p>
         <h1 className="mt-0.5 text-xl font-extrabold">Responder Dashboard</h1>
         <p className="text-xs text-slate-400">Barangay Greater Lagro (BGLRR)</p>
+        <form action={() => logout('responder')}>
+          <button type="submit" className="rounded-xl border border-white/20 px-3 py-1.5 text-xs font-semibold text-white">
+            Log out
+          </button>
+      </form>
       </header>
 
       <main className="flex flex-1 flex-col gap-4 overflow-auto p-4 pb-40">

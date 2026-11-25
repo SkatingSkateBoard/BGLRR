@@ -1,21 +1,9 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server"; 
+import { createClient } from "@/utils/supabase/server";
 import { notifyResidents } from "./notify";
 
-function parseManilaTimestamp(scheduledAt?: string): string {
-  if (!scheduledAt) return new Date().toISOString();
-
-  // If it already includes 'Z' or a timezone offset like '+08:00', parse directly
-  const hasTimezone = /Z$|[+-]\d{2}:\d{2}$/.test(scheduledAt);
-  if (hasTimezone) {
-    return new Date(scheduledAt).toISOString();
-  }
-
-  // Otherwise treat naive datetime-local strings as Philippine Time (UTC+8)
-  return new Date(`${scheduledAt}+08:00`).toISOString();
-}
-//announcement schema
+// announcement schema
 export interface AnnouncementRow {
   id: number;
   title: string;
@@ -24,6 +12,42 @@ export interface AnnouncementRow {
   isPushed: boolean;
   scheduled_at: string;
   created_at: string;
+}
+
+export interface CreateAnnouncementInput {
+  title: string;
+  description: string;
+  isScheduled: boolean;
+  scheduledAt?: string;
+}
+
+export interface UpdateAnnouncementInput {
+  id: number;
+  title: string;
+  description: string;
+  isScheduled?: boolean;
+  scheduledAt?: string;
+}
+
+// The client always sends a UTC ISO string. Reject anything without an offset so the
+// Workers runtime (which runs in UTC) can never misread a local time.
+function toValidIso(value: string): string {
+  if (!/(Z|[+-]\d{2}:\d{2})$/.test(value)) {
+    throw new Error("scheduledAt must include a timezone offset");
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error("Invalid scheduled date/time");
+  }
+  return date.toISOString();
+}
+
+function resolveReleaseTimestamp(isScheduled: boolean, scheduledAt?: string): string {
+  if (isScheduled) {
+    if (!scheduledAt) throw new Error("A release time is required for scheduled posts");
+    return toValidIso(scheduledAt);
+  }
+  return new Date().toISOString();
 }
 
 export async function getAnnouncementsAction(): Promise<AnnouncementRow[]> {
@@ -39,31 +63,24 @@ export async function getAnnouncementsAction(): Promise<AnnouncementRow[]> {
     return [];
   }
 
-  return data || [];
-} 
+  return data ?? [];
+}
 
-export async function createAnnouncementAction(input: {
-  title: string;
-  description: string;
-  isScheduled: boolean;
-  scheduledAt?: string;
-}) {
+export async function createAnnouncementAction(input: CreateAnnouncementInput): Promise<AnnouncementRow> {
   const supabase = await createClient();
 
-  // Optional: get current logged-in operator ID if linked to auth.users
   const { data: { user } } = await supabase.auth.getUser();
-  const { data: operatorData } = await supabase
-    .from("tbl_operator")
-    .select("id")
-    .eq("user_id", user?.id)
-    .single();
+  let operatorId: number | null = null;
+  if (user) {
+    const { data: operator } = await supabase
+      .from("tbl_operator")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    operatorId = operator?.id ?? null;
+  }
 
   const isImmediate = !input.isScheduled;
-
-  const releaseTimestamp =
-    input.isScheduled && input.scheduledAt
-      ? parseManilaTimestamp(input.scheduledAt)
-      : new Date().toISOString();
 
   const { data, error } = await supabase
     .from("tbl_announcement")
@@ -71,72 +88,71 @@ export async function createAnnouncementAction(input: {
       title: input.title,
       description: input.description,
       isScheduled: input.isScheduled,
-      isPushed: isImmediate, // true immediately if NOT scheduled; false if scheduled
-      scheduled_at: releaseTimestamp,
-      operator_id: operatorData?.id ?? null,
+      isPushed: isImmediate,
+      scheduled_at: resolveReleaseTimestamp(input.isScheduled, input.scheduledAt),
+      operator_id: operatorId,
     })
     .select()
     .single();
 
-  if (error) {
-    throw new Error(error.message);
+  if (error) throw new Error(error.message);
+
+  const row = data as AnnouncementRow;
+
+  // Inserts are pushed here directly. The webhook only handles UPDATE, so this is the single send path.
+  if (isImmediate) {
+    try {
+      await notifyResidents({ id: row.id, title: row.title, description: row.description });
+    } catch (err) {
+      // The row is saved. Don't surface an error that would make the admin retry and duplicate it.
+      console.error("Push failed for announcement", row.id, err);
+    }
   }
 
-  // Send push notification to residents right away if not scheduled
-  if (isImmediate && data) {
-    await notifyResidents({
-      id: data.id,
-      title: data.title,
-      description: data.description,
-    });
-  }
-
-  return data as AnnouncementRow;
+  return row;
 }
 
-
-export async function deleteAnnouncementAction(id: number) {
+export async function updateAnnouncementAction(input: UpdateAnnouncementInput): Promise<AnnouncementRow> {
   const supabase = await createClient();
 
-  const { error } = await supabase
+  const { data: existing, error: fetchError } = await supabase
     .from("tbl_announcement")
-    .delete()
-    .eq("id", id);
-
-  if (error) {
-    throw new Error(error.message);
-  }
-}
-export async function updateAnnouncementAction(input: {
-  id: number;
-  title: string;
-  description: string;
-  isScheduled: boolean;
-  scheduledAt?: string;
-}) {
-  const supabase = await createClient();
-
-  const releaseTimestamp =
-    input.isScheduled && input.scheduledAt
-      ? parseManilaTimestamp(input.scheduledAt)
-      : new Date().toISOString();
-
-  const { data, error } = await supabase
-    .from("tbl_announcement")
-    .update({
-      title: input.title,
-      description: input.description,
-      isScheduled: input.isScheduled,
-      scheduled_at: releaseTimestamp,
-      updated_at: new Date().toISOString(),
-    })
+    .select("isPushed")
     .eq("id", input.id)
-    .select()
     .single();
 
-  if (error) {
-    throw new Error(error.message);
+  if (fetchError || !existing) throw new Error("Announcement not found");
+
+  const update: Record<string, unknown> = {
+    title: input.title,
+    description: input.description,
+    updated_at: new Date().toISOString(),
+  };
+
+  // Schedule changes are only allowed before the post has gone out.
+  if (!existing.isPushed && input.isScheduled !== undefined) {
+    update.isScheduled = input.isScheduled;
+    update.scheduled_at = resolveReleaseTimestamp(input.isScheduled, input.scheduledAt);
+    // Push Now sets isPushed = true, and the UPDATE webhook sends the push.
+    update.isPushed = !input.isScheduled;
   }
 
+  let query = supabase.from("tbl_announcement").update(update).eq("id", input.id);
+
+  // Guard against the cron job pushing this row between the read above and this write.
+  if (!existing.isPushed) query = query.eq("isPushed", false);
+
+  const { data, error } = await query.select().single();
+
+  if (error || !data) throw new Error("Could not update this announcement");
+
   return data as AnnouncementRow;
+}
+
+export async function deleteAnnouncementAction(id: number): Promise<void> {
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("tbl_announcement").delete().eq("id", id);
+
+  if (error) throw new Error(error.message);
 }

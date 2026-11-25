@@ -11,6 +11,27 @@ import {
 } from "@/app/actions/announcement-actions";
 
 type ReleaseMode = "immediate" | "scheduled";
+type Tab = "published" | "scheduled";
+
+const REFRESH_MS = 30_000;
+
+// Converts a stored UTC ISO string into the value a datetime-local input expects (local clock time).
+const toLocalInputFormat = (isoString: string) => {
+  const date = new Date(isoString);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+};
+
+const formatDate = (isoString: string) =>
+  new Date(isoString).toLocaleString("en-PH", {
+    timeZone: "Asia/Manila",
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+const errorMessage = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 export function AnnouncementsScreen() {
   const [editingId, setEditingId] = React.useState<number | null>(null);
@@ -18,41 +39,41 @@ export function AnnouncementsScreen() {
   const [description, setDescription] = React.useState("");
   const [releaseMode, setReleaseMode] = React.useState<ReleaseMode>("immediate");
   const [scheduledDateTime, setScheduledDateTime] = React.useState("");
-  const [activeTab, setActiveTab] = React.useState<"published" | "scheduled">("published");
+  const [activeTab, setActiveTab] = React.useState<Tab>("published");
 
   const [announcements, setAnnouncements] = React.useState<AnnouncementRow[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
+  const isEditing = editingId !== null;
+  const editingItem = announcements.find((a) => a.id === editingId) ?? null;
+  // Once pushed, the release date and sending are fixed. Title and message stay editable.
+  const isLocked = editingItem?.isPushed ?? false;
+
+  // Load on mount, then refresh so cron-published rows move to Published on their own.
   React.useEffect(() => {
-    getAnnouncementsAction().then((rows) => {
-      setAnnouncements(rows);
-      setIsLoading(false);
-    });
+    let active = true;
+
+    const load = () =>
+      getAnnouncementsAction()
+        .then((rows) => {
+          if (active) setAnnouncements(rows);
+        })
+        .catch((err) => console.error("Failed to load announcements:", errorMessage(err)))
+        .finally(() => {
+          if (active) setIsLoading(false);
+        });
+
+    load();
+    const id = setInterval(load, REFRESH_MS);
+
+    return () => {
+      active = false;
+      clearInterval(id);
+    };
   }, []);
 
-  const toLocalInputFormat = (isoString: string) => {
-    const date = new Date(isoString);
-    const offset = date.getTimezoneOffset() * 60000;
-    return new Date(date.getTime() - offset).toISOString().slice(0, 16);
-  };
-
-  const handleStartEdit = (item: AnnouncementRow) => {
-    setEditingId(item.id);
-    setTitle(item.title);
-    setDescription(item.description);
-
-    const isFuture = new Date(item.scheduled_at) > new Date();
-    if (isFuture || item.isScheduled) {
-      setReleaseMode("scheduled");
-      setScheduledDateTime(toLocalInputFormat(item.scheduled_at));
-    } else {
-      setReleaseMode("immediate");
-      setScheduledDateTime("");
-    }
-  };
-
-  const handleCancelEdit = () => {
+  const resetForm = () => {
     setEditingId(null);
     setTitle("");
     setDescription("");
@@ -60,87 +81,93 @@ export function AnnouncementsScreen() {
     setReleaseMode("immediate");
   };
 
+  const handleStartEdit = (item: AnnouncementRow) => {
+    setEditingId(item.id);
+    setTitle(item.title);
+    setDescription(item.description);
+
+    if (!item.isPushed && item.isScheduled) {
+      setReleaseMode("scheduled");
+      setScheduledDateTime(toLocalInputFormat(item.scheduled_at));
+    } else {
+      setReleaseMode("immediate");
+      setScheduledDateTime("");
+    }
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !description.trim()) return;
-    if (releaseMode === "scheduled" && !scheduledDateTime) return;
+    const trimmedTitle = title.trim();
+    const trimmedDescription = description.trim();
+    if (!trimmedTitle || !trimmedDescription) return;
+    if (!isLocked && releaseMode === "scheduled" && !scheduledDateTime) return;
+
+    // Convert the picker value to UTC once, here. Immediate posts use the current time.
+    const schedule =
+      releaseMode === "scheduled"
+        ? { isScheduled: true, scheduledAt: new Date(scheduledDateTime).toISOString() }
+        : { isScheduled: false, scheduledAt: new Date().toISOString() };
 
     setIsSubmitting(true);
-
     try {
-       const isoScheduledAt =
-        releaseMode === "scheduled" && scheduledDateTime
-          ? new Date(scheduledDateTime).toISOString()
-          : undefined;
-
-      if (editingId !== null) {
+      if (isEditing) {
+        // Published posts send only title and description. The server ignores schedule fields for them too.
         const updated = await updateAnnouncementAction({
           id: editingId,
-          title: title.trim(),
-          description: description.trim(),
-          isScheduled: releaseMode === "scheduled",
-          scheduledAt: isoScheduledAt,
+          title: trimmedTitle,
+          description: trimmedDescription,
+          ...(isLocked ? {} : schedule),
         });
-
-        setAnnouncements((prev) =>
-          prev.map((item) => (item.id === editingId ? updated : item))
-        );
+        setAnnouncements((prev) => prev.map((item) => (item.id === editingId ? updated : item)));
+        resetForm();
       } else {
         const created = await createAnnouncementAction({
-          title: title.trim(),
-          description: description.trim(),
-          isScheduled: releaseMode === "scheduled",
-          scheduledAt: isoScheduledAt,
+          title: trimmedTitle,
+          description: trimmedDescription,
+          ...schedule,
         });
-
         setAnnouncements((prev) => [created, ...prev]);
+        setActiveTab(schedule.isScheduled ? "scheduled" : "published");
+        resetForm();
       }
-
-      setActiveTab(releaseMode === "immediate" ? "published" : "scheduled");
-      handleCancelEdit();
-    } catch (err: any) {
-      console.error("Failed to save announcement:", err.message);
-      alert("Could not save announcement: " + err.message);
+    } catch (err) {
+      console.error("Failed to save announcement:", errorMessage(err));
+      alert("Could not save announcement: " + errorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (id: number) => {
+    if (!window.confirm("Delete this announcement?")) return;
     try {
       await deleteAnnouncementAction(id);
       setAnnouncements((prev) => prev.filter((item) => item.id !== id));
-      if (editingId === id) handleCancelEdit();
-    } catch (err: any) {
-      console.error("Failed to delete announcement:", err.message);
-      alert("Could not delete announcement: " + err.message);
+      if (editingId === id) resetForm();
+    } catch (err) {
+      console.error("Failed to delete announcement:", errorMessage(err));
+      alert("Could not delete announcement: " + errorMessage(err));
     }
   };
 
-  const now = new Date();
-  const publishedList = announcements.filter((a) => new Date(a.scheduled_at) <= now);
-  const scheduledList = announcements.filter((a) => new Date(a.scheduled_at) > now);
+  // isPushed is the source of truth. It is set on immediate posts and by the cron job.
+  const publishedList = announcements.filter((a) => a.isPushed);
+  const scheduledList = announcements.filter((a) => !a.isPushed);
   const visibleList = activeTab === "published" ? publishedList : scheduledList;
 
-  const formatDate = (isoString: string) =>
-    new Date(isoString).toLocaleString("en-PH", {
-      day: "2-digit",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    return (
+  return (
     <div className="flex flex-col h-full w-full p-6 gap-6 overflow-y-auto">
-      {/* TOP CARD: CREATE / EDIT ANNOUNCEMENT FORM */}
+      {/* CREATE / EDIT FORM */}
       <div
         className={`rounded-2xl border-2 shadow-sm p-6 transition-all duration-200 ${
-          editingId !== null
+          isEditing
             ? "bg-amber-50/40 border-amber-400 ring-4 ring-amber-400/15"
             : "bg-white border-gray-200/80"
         }`}
       >
-        {/* Prominent Editing Banner */}
-        {editingId !== null && (
+        {isEditing && (
           <div className="flex items-center justify-between bg-amber-100 border border-amber-300 text-amber-900 px-4 py-2 rounded-xl mb-4 text-xs font-semibold">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
@@ -148,7 +175,7 @@ export function AnnouncementsScreen() {
             </div>
             <button
               type="button"
-              onClick={handleCancelEdit}
+              onClick={resetForm}
               className="flex items-center gap-1 bg-white hover:bg-amber-50 text-amber-900 border border-amber-300 px-2.5 py-1 rounded-lg cursor-pointer transition-colors"
             >
               <X size={13} /> Cancel Edit
@@ -156,37 +183,36 @@ export function AnnouncementsScreen() {
           </div>
         )}
 
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2.5">
-            <div
-              className={`p-2 rounded-lg ${
-                editingId !== null
-                  ? "bg-amber-500/15 text-amber-700"
-                  : "bg-[rgb(35,35,184)]/10 text-[rgb(35,35,184)]"
-              }`}
-            >
-              {editingId !== null ? <Pencil size={20} /> : <Megaphone size={20} />}
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-gray-900">
-                {editingId !== null ? "Edit Barangay Announcement" : "Create Barangay Announcement"}
-              </h2>
-              <p className="text-xs text-gray-500">
-                {editingId !== null
-                  ? "Update the message details or reschedule its release time below"
-                  : "Broadcast urgent advisories immediately or schedule for later"}
-              </p>
-            </div>
+        <div className="flex items-center gap-2.5 mb-4">
+          <div
+            className={`p-2 rounded-lg ${
+              isEditing ? "bg-amber-500/15 text-amber-700" : "bg-[rgb(35,35,184)]/10 text-[rgb(35,35,184)]"
+            }`}
+          >
+            {isEditing ? <Pencil size={20} /> : <Megaphone size={20} />}
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">
+              {isEditing ? "Edit Barangay Announcement" : "Create Barangay Announcement"}
+            </h2>
+            <p className="text-xs text-gray-500">
+              {isEditing
+                ? isLocked
+                  ? "Already published. You can edit the title and message, but not the release schedule."
+                  : "Update the message or change when it is released"
+                : "Broadcast urgent advisories immediately or schedule for later"}
+            </p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="lg:col-span-2 flex flex-col gap-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
+              <label htmlFor="announcement-title" className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
                 Announcement Title
               </label>
               <input
+                id="announcement-title"
                 type="text"
                 required
                 value={title}
@@ -197,10 +223,11 @@ export function AnnouncementsScreen() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
+              <label htmlFor="announcement-description" className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
                 Description / Message Body
               </label>
               <textarea
+                id="announcement-description"
                 required
                 rows={3}
                 value={description}
@@ -212,98 +239,107 @@ export function AnnouncementsScreen() {
           </div>
 
           <div className="flex flex-col justify-between bg-white/80 rounded-xl border border-gray-200/80 p-4 gap-4">
-            <div className="flex flex-col gap-3">
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Release Schedule
-              </label>
-
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setReleaseMode("immediate")}
-                  className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold border cursor-pointer ${
-                    releaseMode === "immediate"
-                      ? "bg-[rgb(35,35,184)] text-white border-[rgb(35,35,184)]"
-                      : "bg-white text-gray-600 border-gray-300 hover:bg-gray-100"
-                  }`}
-                >
-                  <Send size={14} /> Push Now
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setReleaseMode("scheduled")}
-                  className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold border cursor-pointer ${
-                    releaseMode === "scheduled"
-                      ? "bg-[rgb(35,35,184)] text-white border-[rgb(35,35,184)]"
-                      : "bg-white text-gray-600 border-gray-300 hover:bg-gray-100"
-                  }`}
-                >
-                  <Clock size={14} /> Schedule
-                </button>
-              </div>
-
-              {releaseMode === "scheduled" ? (
-                <div className="mt-1">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Select Date & Time</label>
-                  <input
-                    type="datetime-local"
-                    required
-                    value={scheduledDateTime}
-                    onChange={(e) => setScheduledDateTime(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-gray-900 focus:border-[rgb(35,35,184)] focus:outline-none"
-                  />
-                </div>
-              ) : (
-                <p className="text-xs text-gray-500 mt-1">
-                  Published and pushed to residents immediately upon submission.
+            {isLocked ? (
+              <div className="flex flex-col gap-2">
+                <span className="block text-xs font-semibold text-gray-600 uppercase tracking-wider">Release Schedule</span>
+                <p className="text-xs text-gray-500">
+                  Sent on {formatDate(editingItem!.scheduled_at)}. The release schedule can't be changed.
                 </p>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <span className="block text-xs font-semibold text-gray-600 uppercase tracking-wider">Release Schedule</span>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setReleaseMode("immediate")}
+                    aria-pressed={releaseMode === "immediate"}
+                    className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold border cursor-pointer ${
+                      releaseMode === "immediate"
+                        ? "bg-[rgb(35,35,184)] text-white border-[rgb(35,35,184)]"
+                        : "bg-white text-gray-600 border-gray-300 hover:bg-gray-100"
+                    }`}
+                  >
+                    <Send size={14} /> Push Now
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReleaseMode("scheduled")}
+                    aria-pressed={releaseMode === "scheduled"}
+                    className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold border cursor-pointer ${
+                      releaseMode === "scheduled"
+                        ? "bg-[rgb(35,35,184)] text-white border-[rgb(35,35,184)]"
+                        : "bg-white text-gray-600 border-gray-300 hover:bg-gray-100"
+                    }`}
+                  >
+                    <Clock size={14} /> Schedule
+                  </button>
+                </div>
+
+                {releaseMode === "scheduled" ? (
+                  <div className="mt-1">
+                    <label htmlFor="announcement-datetime" className="block text-xs font-medium text-gray-600 mb-1">
+                      Select Date & Time
+                    </label>
+                    <input
+                      id="announcement-datetime"
+                      type="datetime-local"
+                      required
+                      min={toLocalInputFormat(new Date().toISOString())}
+                      value={scheduledDateTime}
+                      onChange={(e) => setScheduledDateTime(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-gray-900 focus:border-[rgb(35,35,184)] focus:outline-none"
+                    />
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-500 mt-1">Published and pushed to residents immediately upon submission.</p>
+                )}
+              </div>
+            )}
 
             <button
               type="submit"
               disabled={isSubmitting}
               className={`w-full flex items-center justify-center gap-2 text-white font-semibold text-sm py-2.5 px-4 rounded-lg cursor-pointer disabled:opacity-50 transition-colors ${
-                editingId !== null
-                  ? "bg-amber-600 hover:bg-amber-700"
-                  : "bg-[rgb(35,35,184)] hover:bg-[rgb(28,28,155)]"
+                isEditing ? "bg-amber-600 hover:bg-amber-700" : "bg-[rgb(35,35,184)] hover:bg-[rgb(28,28,155)]"
               }`}
             >
               {isSubmitting ? (
                 "Saving..."
-              ) : editingId !== null ? (
-                <><CheckCircle2 size={16} /> Save Changes</>
+              ) : isEditing ? (
+                <>
+                  <CheckCircle2 size={16} /> Save Changes
+                </>
               ) : releaseMode === "immediate" ? (
-                <><Send size={16} /> Publish Announcement</>
+                <>
+                  <Send size={16} /> Publish Announcement
+                </>
               ) : (
-                <><Calendar size={16} /> Schedule Announcement</>
+                <>
+                  <Calendar size={16} /> Schedule Announcement
+                </>
               )}
             </button>
           </div>
         </form>
       </div>
-      {/* BOTTOM SECTION: TABS & ANNOUNCEMENTS TABLE */}
+
+      {/* TABS & TABLE */}
       <div className="flex flex-col flex-1 min-h-0">
         <div className="flex items-center gap-6 border-b border-gray-200 px-2 mb-3">
-          <button
-            type="button"
-            onClick={() => setActiveTab("published")}
-            className={`pb-2.5 text-sm font-semibold border-b-2 cursor-pointer ${
-              activeTab === "published" ? "border-[rgb(35,35,184)] text-[rgb(35,35,184)]" : "border-transparent text-gray-500"
-            }`}
-          >
-            Published ({publishedList.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("scheduled")}
-            className={`pb-2.5 text-sm font-semibold border-b-2 cursor-pointer ${
-              activeTab === "scheduled" ? "border-[rgb(35,35,184)] text-[rgb(35,35,184)]" : "border-transparent text-gray-500"
-            }`}
-          >
-            Scheduled ({scheduledList.length})
-          </button>
+          {(["published", "scheduled"] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className={`pb-2.5 text-sm font-semibold border-b-2 cursor-pointer capitalize ${
+                activeTab === tab ? "border-[rgb(35,35,184)] text-[rgb(35,35,184)]" : "border-transparent text-gray-500"
+              }`}
+            >
+              {tab} ({tab === "published" ? publishedList.length : scheduledList.length})
+            </button>
+          ))}
         </div>
 
         <div className="grid grid-cols-12 items-center bg-white rounded-lg border border-gray-200/80 px-5 py-2.5 text-xs font-semibold text-gray-500 mb-2">
@@ -325,7 +361,6 @@ export function AnnouncementsScreen() {
             </div>
           ) : (
             visibleList.map((item) => {
-              const isPublished = new Date(item.scheduled_at) <= now;
               const isBeingEdited = editingId === item.id;
               return (
                 <div
@@ -334,11 +369,9 @@ export function AnnouncementsScreen() {
                     isBeingEdited ? "border-amber-400 bg-amber-50/40" : "border-gray-200/80"
                   }`}
                 >
-                  <div className="col-span-2 text-xs font-medium text-gray-600">
-                    {formatDate(item.scheduled_at)}
-                  </div>
+                  <div className="col-span-2 text-xs font-medium text-gray-600">{formatDate(item.scheduled_at)}</div>
                   <div className="col-span-2">
-                    {isPublished ? (
+                    {item.isPushed ? (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500 text-white">
                         <CheckCircle2 size={12} /> Published
                       </span>
