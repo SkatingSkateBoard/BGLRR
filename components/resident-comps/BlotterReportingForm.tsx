@@ -49,14 +49,14 @@ export default function BlotterReportingForm() {
 
       setSubmissionError("");
       setSubmissionMessage(
-        `Na-save ang report sa browser na ito. Report ID: ${report.id.slice(0, 8)}.`,
+        `Report saved in this browser. Report ID: ${report.id.slice(0, 8)}.`,
       );
       form.reset();
     } catch (error) {
       console.error("Failed to save blotter report:", error);
       setSubmissionMessage("");
       setSubmissionError(
-        "Hindi na-save ang report sa browser na ito. Pakisubukang muli.",
+        "The report could not be saved in this browser. Please try again.",
       );
     }
   }
@@ -64,7 +64,7 @@ export default function BlotterReportingForm() {
   return (
     <main className="min-h-screen bg-white px-5 pb-10 pt-5 text-slate-900">
       <section className="mx-auto w-full max-w-md">
-        {/* Header: hamburger (Log Out only) + bell, same as dashboard */}
+        {/* Header: hamburger (Log out only) + notifications */}
         <header className="relative mb-4 flex items-center justify-between">
           <button
             type="button"
@@ -85,12 +85,12 @@ export default function BlotterReportingForm() {
                 onClick={() => router.push("/resident/login")}
                 className="w-full rounded-xl px-3 py-2.5 text-left text-sm font-extrabold text-red-700 hover:bg-red-50"
               >
-                Mag-log out
+                Log out
               </button>
             </div>
           )}
 
-          <button type="button" aria-label="Mga abiso" className="rounded-lg p-1">
+          <button type="button" aria-label="Notifications" className="rounded-lg p-1">
             <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8" />
               <path d="M10.3 20a2 2 0 0 0 3.4 0" />
@@ -110,63 +110,63 @@ export default function BlotterReportingForm() {
           </div>
           <h1 className="text-2xl font-extrabold leading-tight">Blotter</h1>
           <p className="mt-1 max-w-xs text-sm font-bold leading-snug text-slate-700">
-            Ilahad ang inyong alalahanin at sasagutin ito ng barangay.
+            Describe your concern and the barangay will respond.
           </p>
         </div>
 
         <div className="rounded-3xl border border-amber-100 bg-linear-to-b from-amber-50 to-white p-5 shadow-[0_10px_24px_rgba(201,138,14,0.15)]">
           <div className="mb-5 rounded-xl border border-amber-300 bg-amber-100 px-3 py-2 text-xs font-bold text-amber-900">
-            Preview lang ito. Sa browser na ito lang ise-save ang mga report at
-            hindi ito isi-sync sa server.
+            Preview only: reports are saved in this browser and are not synced
+            to a server.
           </div>
 
           <form onSubmit={handleSubmit} data-preview-local="true" className="space-y-5">
             <label className="block">
-              <span className="mb-1.5 block text-sm font-extrabold">Uri ng blotter</span>
+              <span className="mb-1.5 block text-sm font-extrabold">Blotter type</span>
               <select
                 name="concernType"
                 required
                 defaultValue=""
                 className={FIELD}
               >
-                <option value="" disabled>Pumili ng uri</option>
-                <option>Alalahanin ng komunidad</option>
-                <option>Away ng magkapitbahay</option>
-                <option>Reklamo sa ingay</option>
-                <option>Isyu sa kaligtasan</option>
-                <option>Isyu sa ari-arian</option>
-                <option>Iba pa</option>
+                <option value="" disabled>Select a type</option>
+                <option>Community concern</option>
+                <option>Neighbor dispute</option>
+                <option>Noise complaint</option>
+                <option>Safety issue</option>
+                <option>Property issue</option>
+                <option>Other</option>
               </select>
             </label>
 
             <label className="block">
-              <span className="mb-1.5 block text-sm font-extrabold">Ano ang inyong pangunahing alalahanin?</span>
+              <span className="mb-1.5 block text-sm font-extrabold">What is your main concern?</span>
               <textarea
                 name="concern"
                 required
                 rows={4}
-                placeholder="Ilahad ang nangyari at sino o ano ang apektado."
+                placeholder="Describe what happened and who or what is affected."
                 className={`${FIELD} resize-y`}
               />
             </label>
 
             <label className="block">
-              <span className="mb-1.5 block text-sm font-extrabold">Saan ito nangyari? (opsyonal)</span>
+              <span className="mb-1.5 block text-sm font-extrabold">Where did this happen? (optional)</span>
               <input
                 name="location"
                 type="text"
-                placeholder="Kalye, landmark, o lugar"
+                placeholder="Street, landmark, or location"
                 className={FIELD}
               />
             </label>
 
             <label className="block">
-              <span className="mb-1.5 block text-sm font-extrabold">Paano kayo matutulungan ng barangay?</span>
+              <span className="mb-1.5 block text-sm font-extrabold">How can the barangay help you?</span>
               <textarea
                 name="requestedHelp"
                 required
                 rows={3}
-                placeholder="Sabihin ang tulong o resulta na inaasahan ninyo."
+                placeholder="Describe the help or outcome you are requesting."
                 className={`${FIELD} resize-y`}
               />
             </label>
@@ -175,7 +175,7 @@ export default function BlotterReportingForm() {
               type="submit"
               className={`w-full rounded-2xl px-4 py-4 text-base font-extrabold text-white transition ${GOLD_BTN}`}
             >
-              Ipadala ang report
+              Submit report
             </button>
           </form>
 
@@ -203,10 +203,10 @@ export default function BlotterReportingForm() {
           onClick={() => router.push("/resident/dashboard")}
           className="mx-auto mt-6 block rounded-full border border-slate-300 bg-white px-6 py-2.5 text-sm font-extrabold text-slate-700 shadow-[0_3px_8px_rgba(0,0,0,0.1)] active:translate-y-px"
         >
-          Bumalik sa dashboard
+          Back to dashboard
         </button>
 
-        <p className="mt-8 text-center text-xs font-bold italic text-slate-500">pindot mo, rescue ko</p>
+        <p className="mt-8 text-center text-xs font-bold italic text-slate-500">Pindot mo, Rescue ko</p>
       </section>
     </main>
   );
