@@ -108,10 +108,11 @@ export async function claimEmergency(
 ): Promise<ActionResult<{ emergency: EmergencyRow }>> {
   const ctx = await requireResponder();
   if (!ctx.ok) return { success: false, error: ctx.error };
-  const { supabase, responderId } = ctx;
+  const {  responderId } = ctx;
+  const supabaseAdmin = await createAdminClient();
 
   // One active assignment per responder.
-  const { count, error: countErr } = await supabase
+  const { count, error: countErr } = await supabaseAdmin
     .from('tbl_emergency_req')
     .select('id', { count: 'exact', head: true })
     .eq('responder_id', responderId)
@@ -126,7 +127,7 @@ export async function claimEmergency(
   }
 
   const now = new Date().toISOString();
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('tbl_emergency_req')
     .update({
       status: 'resolving',
@@ -161,9 +162,9 @@ export async function getResponderCallToken(
 ): Promise<ActionResult<{ token: string; serverUrl: string; roomName: string }>> {
   const ctx = await requireResponder();
   if (!ctx.ok) return { success: false, error: ctx.error };
-  const { responderId } = ctx;
-  const supabaseAdmin = await createAdminClient();
-  const { data, error } = await supabaseAdmin
+  const { supabase, responderId } = ctx;
+
+  const { data, error } = await supabase
     .from('tbl_emergency_req')
     .select('id')
     .eq('id', emergencyId)
