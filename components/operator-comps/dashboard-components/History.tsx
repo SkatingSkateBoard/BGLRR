@@ -25,7 +25,7 @@ type EmergencyResultRow = {
   id: number;
   resident_id: number;
   emergency_req_id: number;
-  notes: string | null;
+  operator_notes: string | null;
   resolved_by: string | null;
   resolved_at: string | null;
   audio_path: string | null;
@@ -51,7 +51,7 @@ export function HistoryPage() {
       const { data, error } = await supabase
         .from("tbl_emergency_result")
         .select(
-          "id, resident_id, emergency_req_id, notes, resolved_by, resolved_at, audio_path, summary, call_transcript"
+          "id, resident_id, emergency_req_id, operator_notes, resolved_by, resolved_at, audio_path, summary, call_transcript"
         )
         .order("id", { ascending: false });
 
@@ -201,7 +201,7 @@ export function HistoryPage() {
                               )}
                             </div>
                             <div className="text-xs text-slate-400 truncate max-w-[220px] mt-0.5">
-                              {row.notes || "Resident #" + row.resident_id}
+                              {row.operator_notes || "Resident #" + row.resident_id}
                             </div>
                           </td>
                           <td className="py-3.5 px-4 text-xs text-slate-600">
@@ -282,7 +282,7 @@ export function HistoryPage() {
                     Responder
                   </div>
                   <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-3 text-xs text-slate-700">
-                    {selected.notes || "No additional notes recorded."}
+                    {selected.operator_notes || "No additional notes recorded."}
                   </div>
                 </div>
 

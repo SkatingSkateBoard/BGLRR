@@ -7,7 +7,7 @@ export type BlotterStatus = "pending" | "scheduled" | "rejected" | "completed";
 export interface BlotterResident {
   first_name: string;
   last_name: string;
-  phone: string;
+  phone_number: string;
 }
 
 export interface BlotterRow {
@@ -89,7 +89,7 @@ export async function getBlottersAction(): Promise<BlotterRow[]> {
       blotter_status,
       rejection_reason,
       created_at,
-      resident:tbl_resident(first_name, last_name, phone)
+      resident:tbl_resident(first_name, last_name, phone_number)
     `
     )
     .order("created_at", { ascending: false });
@@ -187,4 +187,68 @@ export async function completeBlotterAction(id: number): Promise<ActionResult> {
   if (error) return { success: false, error: error.message };
 
   return { success: true, data: data as BlotterRow };
+}
+
+const MAX_CALENDAR_RANGE_MS = 62 * 24 * 60 * 60 * 1000;
+
+const CALENDAR_SELECT = `
+  id,
+  resident_id,
+  description,
+  appointment_date,
+  reviewed_by,
+  blotter_status,
+  rejection_reason,
+  created_at,
+  resident:tbl_resident(first_name, last_name, phone_number)
+`;
+
+/** Appointments (scheduled or completed) whose appointment_date falls in [from, to). */
+export async function getBlotterCalendarAction({
+  from,
+  to,
+}: {
+  from: string;
+  to: string;
+}): Promise<ActionResult<BlotterRow[]>> {
+  const fromDate = new Date(from);
+  const toDate = new Date(to);
+
+  if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+    return { success: false, error: "Invalid date range" };
+  }
+  if (fromDate >= toDate) {
+    return { success: false, error: "Range start must be before range end" };
+  }
+  if (toDate.getTime() - fromDate.getTime() > MAX_CALENDAR_RANGE_MS) {
+    return { success: false, error: "Date range is too large" };
+  }
+
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("tbl_appointment_blotter")
+    .select(CALENDAR_SELECT)
+    .in("blotter_status", ["scheduled", "completed"])
+    .not("appointment_date", "is", null)
+    .gte("appointment_date", fromDate.toISOString())
+    .lt("appointment_date", toDate.toISOString())
+    .order("appointment_date", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching blotter calendar:", error.message);
+    return { success: false, error: "Could not load the calendar" };
+  }
+
+  const rows = (data ?? []) as unknown as Array<
+    Omit<BlotterRow, "resident"> & { resident: BlotterResident | BlotterResident[] | null }
+  >;
+
+  return {
+    success: true,
+    data: rows.map((row) => ({
+      ...row,
+      resident: Array.isArray(row.resident) ? row.resident[0] ?? null : row.resident ?? null,
+    })),
+  };
 }

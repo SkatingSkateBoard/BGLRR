@@ -113,12 +113,12 @@ function DashboardSectionContent({ section }: { section: SectionId }) {
                     <HistoryPage />
                 </div>
             );
-        case "appointment": 
+        case "appointment":
             return (
-                <div>
-                    <BlotterScreen/>
+                <div className={`${contentClass} overflow-hidden`}>
+                    <BlotterScreen />
                 </div>
-            )
+            );
         default:
             return (
                 <div className={`${contentClass} p-7`}>
