@@ -18,12 +18,27 @@ const emergencyHistory = [
 
 export function ResidentPanels({ panel, fullScreen = false }: ResidentPanelsProps) {
   const [announcements, setAnnouncements] = useState<AnnouncementRow[]>([]);
+  const [swVersion, setSwVersion] = useState<string>("");
 
   useEffect(() => {
     if (panel !== "announcements") return;
 
     getAnnouncementsAction().then((rows) => {
       setAnnouncements(rows);
+    });
+  }, [panel]);
+
+  useEffect(() => {
+    if (panel !== "account" || !("serviceWorker" in navigator)) return;
+
+    navigator.serviceWorker.ready.then((reg) => {
+      const channel = new MessageChannel();
+      channel.port1.onmessage = (event) => {
+        if (event.data?.version) {
+          setSwVersion(event.data.version);
+        }
+      };
+      reg.active?.postMessage({ type: "GET_VERSION" }, [channel.port2]);
     });
   }, [panel]);
 
@@ -89,6 +104,10 @@ export function ResidentPanels({ panel, fullScreen = false }: ResidentPanelsProp
             <button type="button" className="w-full rounded-xl border border-red-200 py-3 font-bold text-red-600">
               Delete account
             </button>
+
+            <p className="pt-2 text-center text-xs font-medium text-zinc-400">
+              BGLRR PWA {swVersion ? `• ${swVersion}` : ""}
+            </p>
           </div>
         )}
 

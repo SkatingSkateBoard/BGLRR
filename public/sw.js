@@ -83,3 +83,10 @@ self.addEventListener("notificationclick", (event) => {
       })
   );
 });
+
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "GET_VERSION") {
+    event.ports[0]?.postMessage({ version: SW_VERSION });
+  }
+});
