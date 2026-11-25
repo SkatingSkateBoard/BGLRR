@@ -290,7 +290,7 @@ export default function ReportingDashboard() {
 
   const handleLogout = async () => {
     setIsMenuOpen(false);
-    await logout();
+    await logout('resident');
   };
   return (
     <div className="h-dvh overflow-y-auto overscroll-contain flex justify-center text-[#0a0a0a] bg-white motion-reduce:transition-none relative">

@@ -27,7 +27,7 @@ export function DashboardSideBar() {
     async function handleLogout() {
         try {
             setIsLoggingOut(true);
-            await logout();
+            await logout('operator');
         } catch (error) {
             console.error("Logout execution crash context:", error);
             setIsLoggingOut(false);
