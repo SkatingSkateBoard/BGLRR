@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { getAnnouncementsAction, type AnnouncementRow } from "@/app/actions/announcement-actions";
 
 export type ResidentPanel = "account" | "history" | "announcements" | "blotter";
@@ -11,7 +11,6 @@ interface ResidentPanelsProps {
 }
 
 type PermState = "granted" | "denied" | "prompt" | "unsupported";
-type SirenState = "off" | "ready" | "blocked";
 type PermissionKey = "notifications" | "location" | "microphone";
 type Platform = "ios" | "android" | "desktop";
 type BadgeTone = "ok" | "bad" | "warn" | "idle";
@@ -122,10 +121,7 @@ export function ResidentPanels({ panel, fullScreen = false }: ResidentPanelsProp
   const [notifPerm, setNotifPerm] = useState<PermState>("prompt");
   const [locPerm, setLocPerm] = useState<PermState>("prompt");
   const [micPerm, setMicPerm] = useState<PermState>("prompt");
-  const [sirenState, setSirenState] = useState<SirenState>("off");
   const [helpModal, setHelpModal] = useState<HelpModalState>(null);
-
-  const audioCtxRef = useRef<AudioContext | null>(null);
 
   const openEnableHelp = (key: PermissionKey, reason: string) => {
     setHelpModal({
@@ -141,61 +137,62 @@ export function ResidentPanels({ panel, fullScreen = false }: ResidentPanelsProp
     getAnnouncementsAction().then(setAnnouncements);
   }, [panel]);
 
-  // Service worker version + live permission states
+  // Service worker version
+  useEffect(() => {
+    if (panel !== "account") return;
+    if (!("serviceWorker" in navigator)) return;
+
+    let cancelled = false;
+    navigator.serviceWorker.ready.then((reg) => {
+      if (cancelled || !reg.active) return;
+      const channel = new MessageChannel();
+      channel.port1.onmessage = (event) => {
+        if (event.data?.version) setSwVersion(event.data.version);
+      };
+      reg.active.postMessage({ type: "GET_VERSION" }, [channel.port2]);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [panel]);
+
+  // Live permission states. Re-read when the user comes back to the app,
+  // so changes made in phone or browser settings show up.
   useEffect(() => {
     if (panel !== "account") return;
 
-    let cleanupLoc: (() => void) | undefined;
-    let cleanupMic: (() => void) | undefined;
-    let cancelled = false;
+    const refreshPermissions = () => {
+      if ("Notification" in window) {
+        const p = Notification.permission;
+        setNotifPerm(p === "default" ? "prompt" : (p as PermState));
+      } else {
+        setNotifPerm("unsupported");
+      }
 
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.ready.then((reg) => {
-        if (cancelled || !reg.active) return;
-        const channel = new MessageChannel();
-        channel.port1.onmessage = (event) => {
-          if (event.data?.version) setSwVersion(event.data.version);
-        };
-        reg.active.postMessage({ type: "GET_VERSION" }, [channel.port2]);
-      });
-    }
+      if (!navigator.permissions) return;
 
-    if ("Notification" in window) {
-      setNotifPerm(Notification.permission as PermState);
-    } else {
-      setNotifPerm("unsupported");
-    }
-
-    if ("permissions" in navigator) {
       navigator.permissions
         .query({ name: "geolocation" })
-        .then((res) => {
-          if (cancelled) return;
-          setLocPerm(res.state as PermState);
-          res.onchange = () => setLocPerm(res.state as PermState);
-          cleanupLoc = () => { res.onchange = null; };
-        })
+        .then((res) => setLocPerm(res.state as PermState))
         .catch(() => {});
 
       navigator.permissions
         .query({ name: "microphone" as PermissionName })
-        .then((res) => {
-          if (cancelled) return;
-          setMicPerm(res.state as PermState);
-          res.onchange = () => setMicPerm(res.state as PermState);
-          cleanupMic = () => { res.onchange = null; };
-        })
+        .then((res) => setMicPerm(res.state as PermState))
         .catch(() => {});
-    }
+    };
+
+    refreshPermissions();
+    document.addEventListener("visibilitychange", refreshPermissions);
+    window.addEventListener("focus", refreshPermissions);
 
     return () => {
-      cancelled = true;
-      cleanupLoc?.();
-      cleanupMic?.();
+      document.removeEventListener("visibilitychange", refreshPermissions);
+      window.removeEventListener("focus", refreshPermissions);
     };
   }, [panel]);
 
-  // Notifications
   const handleNotifications = async () => {
     if (!("Notification" in window)) {
       setHelpModal({
@@ -214,11 +211,10 @@ export function ResidentPanels({ panel, fullScreen = false }: ResidentPanelsProp
       return;
     }
     const result = await Notification.requestPermission();
-    setNotifPerm(result as PermState);
+    setNotifPerm(result === "default" ? "prompt" : (result as PermState));
     // TODO: pushManager.subscribe() and save the token to Supabase when result === "granted"
   };
 
-  // Location
   const handleLocation = () => {
     if (!("geolocation" in navigator)) {
       setLocPerm("unsupported");
@@ -240,27 +236,6 @@ export function ResidentPanels({ panel, fullScreen = false }: ResidentPanelsProp
     );
   };
 
-  // Siren: unlocks audio playback. Only a user tap can do this.
-  const handleSiren = async () => {
-    try {
-      const AudioCtx =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      if (!AudioCtx) {
-        setSirenState("blocked");
-        return;
-      }
-      if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
-        audioCtxRef.current = new AudioCtx();
-      }
-      await audioCtxRef.current.resume();
-      setSirenState(audioCtxRef.current.state === "running" ? "ready" : "blocked");
-    } catch {
-      setSirenState("blocked");
-    }
-  };
-
-  // Voice SOS: microphone permission only
   const handleVoiceSos = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
       setMicPerm("unsupported");
@@ -280,38 +255,7 @@ export function ResidentPanels({ panel, fullScreen = false }: ResidentPanelsProp
     }
   };
 
-  // Close the AudioContext when the component unmounts
-  useEffect(() => {
-    return () => {
-      audioCtxRef.current?.close().catch(() => {});
-      audioCtxRef.current = null;
-    };
-  }, []);
-
-  const title =
-    panel === "account"
-      ? "Account & App Settings"
-      : panel === "history"
-        ? "Emergency History"
-        : "Announcement Inbox";
-
-  const sirenBadge =
-    sirenState === "ready" ? (
-      <Badge tone="ok">On</Badge>
-    ) : sirenState === "blocked" ? (
-      <Badge tone="bad">Off</Badge>
-    ) : (
-      <Badge tone="idle">Turn on</Badge>
-    );
-
-  const sirenSubtitle =
-    sirenState === "ready"
-      ? "You'll hear alerts on this device."
-      : sirenState === "blocked"
-        ? "Couldn't enable sound. Tap to try again."
-        : "Plays a siren when help is dispatched.";
-
-  const micSubtitle =
+  const voiceSosSubtitle =
     micPerm === "granted"
       ? "You can call for help by voice."
       : micPerm === "denied"
@@ -319,6 +263,13 @@ export function ResidentPanels({ panel, fullScreen = false }: ResidentPanelsProp
         : micPerm === "unsupported"
           ? "Not supported in this browser."
           : "Lets you call for help by voice.";
+
+  const title =
+    panel === "account"
+      ? "Account & App Settings"
+      : panel === "history"
+        ? "Emergency History"
+        : "Announcement Inbox";
 
   return (
     <main
@@ -405,14 +356,8 @@ export function ResidentPanels({ panel, fullScreen = false }: ResidentPanelsProp
                 onClick={handleLocation}
               />
               <SettingRow
-                title="Siren sound"
-                subtitle={sirenSubtitle}
-                badge={sirenBadge}
-                onClick={handleSiren}
-              />
-              <SettingRow
                 title="Voice SOS"
-                subtitle={micSubtitle}
+                subtitle={voiceSosSubtitle}
                 badge={permBadge(micPerm)}
                 onClick={handleVoiceSos}
               />
