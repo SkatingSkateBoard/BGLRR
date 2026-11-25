@@ -347,7 +347,7 @@ export default function ReportingDashboard() {
               className="box-border mb-1.5 block w-full rounded-[12px] bg-white/80 px-4 py-3 text-left font-bold text-zinc-800 hover:bg-white"
               onClick={() => {
                 setIsMenuOpen(false);
-                router.push("/resident/settings");
+                router.push("/pwa/resident/settings");
               }}
             >
               Account & App Settings
@@ -358,7 +358,7 @@ export default function ReportingDashboard() {
               className="box-border mb-1.5 block w-full rounded-[12px] bg-white/80 px-4 py-3 text-left font-bold text-zinc-800 hover:bg-white"
               onClick={() => {
                 setIsMenuOpen(false);
-                router.push("/resident/history");
+                router.push("/pwa/resident/history");
               }}
             >
               Emergency History
