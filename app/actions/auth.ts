@@ -4,15 +4,17 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 
 type Role = 'operator' | 'resident' | 'responder' | 'admin'
-export async function logout(role: Role) {
+export async function logout(role?: Role) {
   const supabase = await createClient();
 
   await supabase.auth.signOut();
 
-  if (role === 'operator' || role === 'admin') {
-    redirect('/')
+  if (role === "responder") {
+    redirect("/pwa/responder/login");
+  } else if (role === "resident") {
+    redirect("/pwa/resident/login");
   } else {
-    redirect('/pwa')
+    redirect("/");
   }
 }
 //resident

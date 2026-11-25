@@ -160,7 +160,7 @@ export default function CreateAccountsPage() {
 
         <div style={{ textAlign: "center" }}>
           <button
-            onClick={() => logout()}
+            onClick={() => logout('admin')}
             style={{ ...button, background: "#e00", padding: "10px 20px" }}
           >
             Logout
