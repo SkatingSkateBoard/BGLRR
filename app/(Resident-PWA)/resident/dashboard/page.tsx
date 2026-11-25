@@ -4,16 +4,33 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { isResidentVerified } from "@/app/actions/auth";
 import ReportingDashboard from "@/components/resident-comps/reporting-page";
+import { usePreviewMode } from "@/lib/usePreviewMode";
 
 type VerificationStatus = "verified" | "pending" | "rejected" | null;
 
 export default function ReportingPage() {
+  const previewMode = usePreviewMode();
+
+  if (previewMode) {
+    return <ReportingDashboard />;
+  }
+
+  return <AuthenticatedReportingPage />;
+}
+
+function AuthenticatedReportingPage() {
   const router = useRouter();
   const [isVerified, setIsVerified] = useState<VerificationStatus>(null);
   const [isLocationBlocked, setIsLocationBlocked] = useState(false);
   const [isInstalledApp, setIsInstalledApp] = useState(false);
 
   useEffect(() => {
+    const isPreviewRequest =
+      process.env.NODE_ENV !== "production" &&
+      (document.cookie.split("; ").includes("bglrr_preview=1") ||
+        new URLSearchParams(window.location.search).get("preview") === "1");
+    if (isPreviewRequest) return;
+
     const checkVerification = async () => {
       const result = await isResidentVerified();
       if (result.success && result.status === "pending") {

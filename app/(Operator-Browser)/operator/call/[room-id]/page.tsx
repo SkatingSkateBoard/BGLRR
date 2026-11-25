@@ -33,6 +33,7 @@ import {
   Clock,
   MapPin,
 } from "lucide-react";
+import { usePreviewMode } from "@/lib/usePreviewMode";
 
 function MapPlaceholder() {
   return (
@@ -64,6 +65,7 @@ export default function OperatorCallPage({
   const { "room-id": roomId } = use(params);
   const token = searchParams.get("token");
   const serverUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || "ws://localhost:7880";
+  const previewMode = usePreviewMode();
 
   const [postCall, setPostCall] = useState<{
     requestId: number;
@@ -78,6 +80,26 @@ export default function OperatorCallPage({
         storagePath={postCall.storagePath}
         durationSec={postCall.durationSec}
       />
+    );
+  }
+
+  if (previewMode) {
+    return (
+      <main className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased">
+        <LiveKitRoom
+          video={false}
+          audio={false}
+          token="preview"
+          serverUrl={serverUrl}
+          connect={false}
+        >
+          <OperatorCallInterface
+            roomId={roomId}
+            previewMode
+            onCallEnded={() => undefined}
+          />
+        </LiveKitRoom>
+      </main>
     );
   }
 
@@ -120,8 +142,10 @@ export default function OperatorCallPage({
 function OperatorCallInterface({
   roomId,
   onCallEnded,
+  previewMode = false,
 }: {
   roomId: string;
+  previewMode?: boolean;
   onCallEnded: (data: {
     requestId: number;
     storagePath: string | null;
@@ -178,11 +202,12 @@ function OperatorCallInterface({
     .join(", ");
 
   const toggleMute = async () => {
+    if (previewMode) return;
     await localParticipant.setMicrophoneEnabled(isMuted);
   };
 
   const handleTerminate = async () => {
-    if (ending) return;
+    if (ending || previewMode) return;
     setEnding(true);
     try {
       const uploadedStoragePath = await stopAndUpload();
@@ -257,7 +282,7 @@ function OperatorCallInterface({
 
           <button
             onClick={handleTerminate}
-            disabled={ending}
+            disabled={ending || previewMode}
             title="End Call & Proceed to Post-Call Notes"
             className="flex items-center justify-center p-2.5 rounded-xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors duration-150 cursor-pointer shadow-xs disabled:opacity-50"
           >
@@ -358,6 +383,7 @@ function OperatorCallInterface({
       <footer className="flex flex-wrap justify-center gap-4 pt-5 border-t border-slate-200/80 w-full">
         <button
           onClick={toggleMute}
+          disabled={previewMode}
           aria-pressed={isMuted}
           className={
             "flex items-center gap-2.5 px-6 py-3 rounded-xl border text-sm font-semibold shadow-xs transition-colors cursor-pointer " +
@@ -372,7 +398,7 @@ function OperatorCallInterface({
 
         <button
           onClick={handleTerminate}
-          disabled={ending}
+          disabled={ending || previewMode}
           className="flex items-center gap-2.5 px-7 py-3 rounded-xl border border-red-600 bg-red-600 text-white hover:bg-red-700 text-sm font-semibold shadow-sm transition-colors cursor-pointer disabled:opacity-50"
         >
           <PhoneOff className="w-4 h-4" />

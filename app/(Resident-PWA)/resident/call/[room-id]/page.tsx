@@ -12,6 +12,7 @@ import {
 import { useKrispNoiseFilter } from "@livekit/components-react/krisp";
 import { createClient } from "@/utils/supabase/client";
 import { Track } from 'livekit-client';
+import { usePreviewMode } from "@/lib/usePreviewMode";
 
 import styles from "./page.module.css";
 
@@ -28,6 +29,7 @@ export default function CallPage({ params }: PageProps) {
   const serverUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL || "ws://localhost:7880";
   const router = useRouter();
   const supabase = createClient();
+  const previewMode = usePreviewMode();
 
   //ping watchposition
  const lastPingTimeRef = useRef<number>(0);
@@ -97,6 +99,22 @@ useEffect(() => {
 }, [token, roomId]); // Removed `supabase` so watchPosition doesn't reset on re-renders
 
   
+
+  if (previewMode) {
+    return (
+      <main className={`${styles.page} h-screen font-sans antialiased overflow-hidden select-none`}>
+        <LiveKitRoom
+          video={false}
+          audio={false}
+          token="preview"
+          serverUrl={serverUrl}
+          connect={false}
+        >
+          <CallInterface roomId={roomId} />
+        </LiveKitRoom>
+      </main>
+    );
+  }
 
   if (!token) {
     return (

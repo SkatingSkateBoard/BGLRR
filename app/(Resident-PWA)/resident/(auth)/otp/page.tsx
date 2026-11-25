@@ -29,6 +29,10 @@ export default function OtpPage() {
     }
 
     const verifiedEmail: string = savedEmail;
+    const isPreviewMode =
+      process.env.NODE_ENV !== "production" &&
+      (document.cookie.split("; ").includes("bglrr_preview=1") ||
+        new URLSearchParams(window.location.search).get("preview") === "1");
 
     setEmail(verifiedEmail);
     setOtpSource(savedOtpSource || "signup");
@@ -36,7 +40,7 @@ export default function OtpPage() {
     otpInputRef.current?.focus();
 
     async function automaticallyResendCode() {
-      if (savedOtpSource !== "login") {
+      if (isPreviewMode || savedOtpSource !== "login") {
         return;
       }
 

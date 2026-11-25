@@ -2,6 +2,14 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
 export async function proxy(request: NextRequest) {
+  if (
+    process.env.NODE_ENV !== 'production' &&
+    (request.cookies.get('bglrr_preview')?.value === '1' ||
+      request.nextUrl.searchParams.get('preview') === '1')
+  ) {
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({
     request: {
       headers: request.headers,
