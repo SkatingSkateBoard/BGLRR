@@ -44,7 +44,7 @@ export async function notifyResponders(emergency: EmergencyReqInput) {
       ? `"${emergency.resident_description}" — Tap to claim now.`
       : 'New emergency on standby — Tap to claim now.',
     emergencyId: emergency.id,
-    url: `/responder?claim=${emergency.id}`,
+    url: `/pwa/responder/dashboard}`,
   });
 
   let sentCount = 0;
@@ -93,7 +93,7 @@ export async function notifyResidents(announcement: AnnouncementInput) {
     title: `📢 ${announcement.title}`,
     body: announcement.description || 'New community announcement posted.',
     announcementId: announcement.id,
-    url: '/resident', // Change to '/resident/announcements' if you have a dedicated page
+    url: '/pwa/resident/announcements', // Change to '/resident/announcements' if you have a dedicated page
   });
 
   let sentCount = 0;

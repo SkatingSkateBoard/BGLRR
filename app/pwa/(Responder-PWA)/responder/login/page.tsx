@@ -5,10 +5,10 @@ import { login } from "@/app/actions/auth";
 
 //deps
 import { useState, useEffect } from "react";
-import type { FormEvent } from "react"; // Fixed to standard React FormEvent type
+import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
-export default function LoginPage() {
+export default function ResponderLoginPage() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -28,19 +28,12 @@ export default function LoginPage() {
 
       if (!result.success) {
         setLoading(false);
-
-        if (result.isEmailNotConfirmed) {
-          sessionStorage.setItem("signupEmail", email);
-          sessionStorage.setItem("otpSource", "login");
-          router.push("/resident/otp");
-          return;
-        }
-
         setError(result.error || "An error occurred during login.");
         return;
       }
 
-      router.push("/");
+      // Redirect to /pwa so proxy.ts checks role and sends responder to /pwa/responder/dashboard
+      router.push("/pwa");
       router.refresh();
     } catch (err) {
       setLoading(false);
@@ -48,8 +41,8 @@ export default function LoginPage() {
     }
   }
 
-  const moveToRegister = () => {
-    router.push("/resident/signup"); 
+  const moveToResidentLogin = () => {
+    router.push("/pwa/resident/login");
   };
 
   useEffect(() => {
@@ -76,28 +69,44 @@ export default function LoginPage() {
             <img src="/icon_bgl.png" className="bg-white h-20 w-22" alt="BGL Logo" />
             <div className="grid-row-2 text-white">
               <p>Barangay Greater Lagro</p>
-              <p className="font-bold text-[34px]">Rapid Response</p>
+              <p className="font-bold text-[34px] leading-tight">Rapid Response</p>
+              <span className="inline-block mt-1 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider bg-[rgb(237,41,44)] text-white rounded-md">
+                Responder Portal
+              </span>
             </div>
           </div>
 
-          <form 
+          <form
             onSubmit={handleLogin}
             className="bg-white/0 flex flex-col p-7 w-screen md:w-115 text-white mt-10 mb-30"
           >
-
             {error && (
               <p className="text-red-500 font-bold text-[14px] mb-4 bg-white/90 p-2 rounded-xl text-center shadow-sm">
                 {error}
               </p>
             )}
 
-            <label htmlFor="email">Email or Phone Number</label>
-            <input type="text" id="email" placeholder="example@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} required 
-            className="text-[14px] mb-2 p-2 border border-white rounded-[3vw] md:rounded-xl focus:outline-none w-full h-12 bg-white/20" />
+            <label htmlFor="email">Responder Email</label>
+            <input
+              type="text"
+              id="email"
+              placeholder="responder@bglrr.ph"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="text-[14px] mb-2 p-2 border border-white rounded-[3vw] md:rounded-xl focus:outline-none w-full h-12 bg-white/20"
+            />
 
             <label htmlFor="password">Password</label>
-            <input type="password" id="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required 
-            className="text-[14px] p-2 border border-white rounded-[3vw] md:rounded-xl focus:outline-none w-full h-12 bg-white/20" />
+            <input
+              type="password"
+              id="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="text-[14px] p-2 border border-white rounded-[3vw] md:rounded-xl focus:outline-none w-full h-12 bg-white/20"
+            />
 
             <div className="mb-5 font-bold text-blue-700 text-right w-full cursor-pointer hover:underline text-[14px]">
               Forgot password?
@@ -108,24 +117,27 @@ export default function LoginPage() {
               disabled={loading}
               className="shadow-md/20 cursor-pointer mt-4 mb-3 bg-[rgb(237,41,44)] hover:bg-red-700 disabled:bg-gray-400 text-[16px] text-white font-bold py-2 px-4 rounded-[3vw] md:rounded-xl w-full h-13"
             >
-              {loading ? "Logging in..." : "Login"}
+              {loading ? "Logging in..." : "Responder Login"}
             </button>
 
-            <div className="mt-2 text-black text-center w-full mb-2 text-[14px]">
-              No account? Sign up here.
+            <div className="mt-3 text-black text-center w-full text-[13px]">
+              Responder accounts are issued by Barangay Admin.
             </div>
 
-            <button
-              type="button"
-              onClick={moveToRegister}
-              className="shadow-md/20 cursor-pointer bg-[rgb(32,32,162)] hover:bg-blue-800 text-[16px] text-white font-bold py-2 px-4 rounded-[3vw] md:rounded-xl w-full h-13"
-            >
-              Register
-            </button>
+            {/* Switch back to Resident Login */}
+            <div className="mt-5 text-center">
+              <button
+                type="button"
+                onClick={moveToResidentLogin}
+                className="text-blue-800 font-bold underline cursor-pointer text-[14px] hover:text-blue-950"
+              >
+                Not a responder? Back to Resident Login
+              </button>
+            </div>
 
             {/* Bottom Support Information Section */}
-            <div className="flex flex-col items-center mt-10">
-              <p className="text-black font-bold mb-1">Questions?</p>
+            <div className="flex flex-col items-center mt-8">
+              <p className="text-black font-bold mb-1">Dispatch Support</p>
               <div className="flex flex-row gap-1 justify-center px-2">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

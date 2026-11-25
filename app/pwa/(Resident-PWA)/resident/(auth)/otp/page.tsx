@@ -100,7 +100,7 @@ export default function OtpPage() {
       return;
     }
 
-    router.push("/resident/dashboard");
+    router.push("/pwa/resident/dashboard");
     router.refresh();
   }
 

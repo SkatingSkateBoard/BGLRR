@@ -18,7 +18,7 @@ export default function RegisterPage() {
     }, [])
 
     const handleBack = () => {
-        router.push('/resident/login');
+        router.push('/pwa/resident/login');
     }
 
     return (

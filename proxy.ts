@@ -38,48 +38,90 @@ export async function proxy(request: NextRequest) {
   const claims = data?.claims
   const userId = claims?.sub
   const pathname = request.nextUrl.pathname
+  const role = claims?.app_metadata?.role
 
-  //public paths
-  const publicPaths = ['/resident/login', '/operator/login', '/unauthorized', '/resident/signup', '/resident/otp']
+  // Helper: sends any logged-in user to their role's dashboard
+  const getDashboardByRole = (userRole?: string) => {
+    switch (userRole) {
+      case 'resident':
+        return '/pwa/resident/dashboard'
+      case 'responder':
+        return '/pwa/responder/dashboard'
+      case 'operator':
+        return '/operator/dashboard'
+      case 'admin':
+        return '/admin/create'
+      default:
+        return '/unauthorized'
+    }
+  }
 
-   const role = claims?.app_metadata?.role
-  const ROLES = ["resident", "operator", "admin", "responder"]
+  // Public paths (accessible without logging in)
+  const publicPaths = [
+    '/pwa/resident/login',
+    '/pwa/resident/signup',
+    '/pwa/resident/otp',
+    '/pwa/responder/login',
+    '/operator/login',
+    '/unauthorized',
+  ]
 
-  if (userId && (pathname === '/resident/login' || pathname === '/operator/login')) {
-    if (role === 'resident') return NextResponse.redirect(new URL('/resident/dashboard', request.url))
-    if (role === 'operator') return NextResponse.redirect(new URL('/operator/dashboard', request.url))
-    if (role === 'admin') return NextResponse.redirect(new URL('/admin/create', request.url))
-    if (role === 'responder') return NextResponse.redirect(new URL('/responder/dashboard', request.url))
+  // Login pages (if already logged in, redirect away to dashboard)
+  const loginPaths = [
+    '/pwa/resident/login',
+    '/pwa/responder/login',
+    '/operator/login',
+  ]
+
+  if (userId && loginPaths.includes(pathname)) {
+    return NextResponse.redirect(new URL(getDashboardByRole(role), request.url))
   }
 
   if (publicPaths.includes(pathname)) {
-    return response;
+    return response
   }
 
+  // Not logged in:
+  // - /pwa/responder/* -> /pwa/responder/login
+  // - /pwa and /pwa/*  -> /pwa/resident/login (base PWA login)
+  // - everything else  -> /operator/login
   if (error || !userId) {
-    const loginPath = pathname.startsWith('/resident')
-    ? '/resident/login'
-    : '/operator/login';
-    return NextResponse.redirect(new URL(loginPath, request.url));
+    let loginPath = '/operator/login'
+
+    if (pathname.startsWith('/pwa/responder')) {
+      loginPath = '/pwa/responder/login'
+    } else if (pathname.startsWith('/pwa')) {
+      loginPath = '/pwa/resident/login'
+    }
+
+    return NextResponse.redirect(new URL(loginPath, request.url))
   }
 
-
-  //default paths based on role
-  if (pathname === '/') {
-    if (role === 'resident') return NextResponse.redirect(new URL('/resident/dashboard', request.url));
-    if (role === 'operator') return NextResponse.redirect(new URL('/operator/dashboard', request.url));
-    if (role === 'admin') return NextResponse.redirect(new URL('/admin/create', request.url));
-    if (role === 'responder') return NextResponse.redirect(new URL('/responder/dashboard', request.url));
+  // Logged in at entry points ('/' or '/pwa'): send to role dashboard
+  if (pathname === '/' || pathname === '/pwa' || pathname === '/pwa/') {
+    return NextResponse.redirect(new URL(getDashboardByRole(role), request.url))
   }
 
-  const currentPath = ROLES.find((r) => pathname.startsWith(`/${r}`));
-  if (currentPath && role !== currentPath) {
-    return NextResponse.redirect(new URL('/unauthorized', request.url));
+  // Role-based route guards
+  if (pathname.startsWith('/pwa/resident') && role !== 'resident') {
+    return NextResponse.redirect(new URL('/unauthorized', request.url))
   }
 
-  return response;
+  if (pathname.startsWith('/pwa/responder') && role !== 'responder') {
+    return NextResponse.redirect(new URL('/unauthorized', request.url))
+  }
+
+  if (pathname.startsWith('/operator') && role !== 'operator') {
+    return NextResponse.redirect(new URL('/unauthorized', request.url))
+  }
+
+  if (pathname.startsWith('/admin') && role !== 'admin') {
+    return NextResponse.redirect(new URL('/unauthorized', request.url))
+  }
+
+  return response
 }
 
 export const config = {
-  matcher: ['/', '/resident/:path*', '/operator/:path*', '/admin/:path*'],
+  matcher: ['/', '/pwa', '/pwa/:path*', '/operator/:path*', '/admin/:path*'],
 }

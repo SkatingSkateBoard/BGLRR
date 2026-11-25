@@ -17,11 +17,11 @@
       const checkVerification = async () => {
         const result = await isResidentVerified();
         if (result.success && result.status === "pending") {
-          router.push("/resident/unverified");
+          router.push("/pwa/resident/unverified");
         } else if (result.success && result.status === "rejected") {
-          router.push("/resident/rejected");
+          router.push("/pwa/resident/rejected");
         } else if (!result.success) {
-          router.push("/resident/login");
+          router.push("/pwa/resident/login");
         }
 
         setIsVerified(result.status);

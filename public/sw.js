@@ -1,5 +1,5 @@
 // public/sw.js
-const SW_VERSION = "v2"; // <-- Bumped so browsers install the new SW immediately
+const SW_VERSION = "v1.1.3";
 
 const EMERGENCY_VIBRATION = [
   250, 100, 250, 100, 250,

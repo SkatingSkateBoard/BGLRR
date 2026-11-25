@@ -117,7 +117,7 @@ useEffect(() => {
         serverUrl={serverUrl}
         connectOptions={{ autoSubscribe: true }}
         onDisconnected={() => {
-          router.push("/resident/dashboard"); 
+          router.push("/pwa/resident/dashboard"); 
         }}
       >
         <CallInterface roomId={roomId} />
@@ -162,7 +162,7 @@ function CallInterface({ roomId }: { roomId: string }) {
   const isOperatorPresent = participants.some((p) => 
     p.identity.startsWith("Operator-")
   );
-
+  //TO BE CHANGED FOR NOW
   // Track if an operator was connected, and automatically hang up if they leave
   useEffect(() => {
     if (isOperatorPresent) {
@@ -172,7 +172,7 @@ function CallInterface({ roomId }: { roomId: string }) {
       if (room) {
         room.disconnect();
       }
-      router.push("/"); // Redirect back to a safe home or landing state
+      router.push("/pwa/resident/dashboard"); // Redirect back to a safe home or landing state
     }
   }, [isOperatorPresent, hadOperator, room, router]);
 
@@ -188,7 +188,7 @@ function CallInterface({ roomId }: { roomId: string }) {
     if (room) {
       room.disconnect();
     }
-    router.push("/"); 
+    router.push("/pwa/resident/dashboard"); 
   };
 
   return (
