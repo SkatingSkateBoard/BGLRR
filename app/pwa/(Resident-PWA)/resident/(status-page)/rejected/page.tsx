@@ -1,7 +1,7 @@
 "use client";
 
 import StatusScreen from "@/components/resident-comps/status-screen";
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@/utils/supabase/client";
 
 async function getRejectionReason(): Promise<{ reason: string | null; error: string | null }> {
   const supabase = await createClient();
