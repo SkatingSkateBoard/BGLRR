@@ -162,7 +162,7 @@ const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       sessionStorage.setItem("signupEmail", formData.email || "");
       sessionStorage.setItem("otpSource", "signup");
 
-      router.push("/resident/otp");
+      router.push("/pwa/resident/otp");
       
     } catch (err) {
       console.error("Failed to process resident submission context data:", err);
