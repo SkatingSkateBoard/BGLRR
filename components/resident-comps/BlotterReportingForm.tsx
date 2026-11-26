@@ -4,6 +4,13 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { saveBlotterReport } from "@/lib/blotterReports";
 
+function formatLocalDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 /* Gold "Blotter" tile palette, lifted from the dashboard */
 const GOLD_BTN =
   "bg-linear-to-b from-[#f2bd3d] to-[#c98a0e] " +
@@ -29,9 +36,34 @@ export default function BlotterReportingForm() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [submissionMessage, setSubmissionMessage] = useState("");
   const [submissionError, setSubmissionError] = useState("");
+  const [appointmentDate, setAppointmentDate] = useState("");
+  const [calendarMonth, setCalendarMonth] = useState(
+    () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+  );
+  const today = formatLocalDate(new Date());
+  const monthLabel = calendarMonth.toLocaleDateString(undefined, {
+    month: "long",
+    year: "numeric",
+  });
+  const daysInMonth = new Date(
+    calendarMonth.getFullYear(),
+    calendarMonth.getMonth() + 1,
+    0,
+  ).getDate();
+  const firstWeekday = new Date(
+    calendarMonth.getFullYear(),
+    calendarMonth.getMonth(),
+    1,
+  ).getDay();
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!appointmentDate || appointmentDate < today) {
+      setSubmissionMessage("");
+      setSubmissionError("Please select an available appointment day.");
+      return;
+    }
+
     const form = event.currentTarget;
     const formData = new FormData(form);
     const readField = (name: string) => {
@@ -45,6 +77,7 @@ export default function BlotterReportingForm() {
         concern: readField("concern"),
         location: readField("location"),
         requestedHelp: readField("requestedHelp"),
+        appointmentDate,
       });
 
       setSubmissionError("");
@@ -52,6 +85,7 @@ export default function BlotterReportingForm() {
         `Report saved in this browser. Report ID: ${report.id.slice(0, 8)}.`,
       );
       form.reset();
+      setAppointmentDate("");
     } catch (error) {
       console.error("Failed to save blotter report:", error);
       setSubmissionMessage("");
@@ -62,7 +96,7 @@ export default function BlotterReportingForm() {
   }
 
   return (
-    <main className="min-h-screen bg-white px-5 pb-10 pt-5 text-slate-900">
+    <main className="h-dvh overflow-y-auto overscroll-contain bg-white px-5 pb-10 pt-5 text-slate-900">
       <section className="mx-auto w-full max-w-md">
         {/* Header: hamburger (Log out only) + notifications */}
         <header className="relative mb-4 flex items-center justify-between">
@@ -170,6 +204,134 @@ export default function BlotterReportingForm() {
                 className={`${FIELD} resize-y`}
               />
             </label>
+
+            <fieldset>
+              <legend className="mb-1.5 text-sm font-extrabold">
+                Choose an appointment day
+              </legend>
+              <p className="mb-3 text-xs font-medium text-slate-600">
+                Select a date for your blotter appointment.
+              </p>
+              <input
+                type="hidden"
+                name="appointmentDate"
+                value={appointmentDate}
+              />
+              <div className="rounded-2xl border border-amber-200 bg-white p-3 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)]">
+                <div className="mb-3 flex items-center justify-between">
+                  <button
+                    type="button"
+                    aria-label="Previous month"
+                    onClick={() =>
+                      setCalendarMonth(
+                        (month) =>
+                          new Date(
+                            month.getFullYear(),
+                            month.getMonth() - 1,
+                            1,
+                          ),
+                      )
+                    }
+                    className="rounded-lg px-3 py-1.5 font-bold text-amber-900 hover:bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    ‹
+                  </button>
+                  <h2
+                    aria-live="polite"
+                    className="text-sm font-extrabold text-slate-800"
+                  >
+                    {monthLabel}
+                  </h2>
+                  <button
+                    type="button"
+                    aria-label="Next month"
+                    onClick={() =>
+                      setCalendarMonth(
+                        (month) =>
+                          new Date(
+                            month.getFullYear(),
+                            month.getMonth() + 1,
+                            1,
+                          ),
+                      )
+                    }
+                    className="rounded-lg px-3 py-1.5 font-bold text-amber-900 hover:bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    ›
+                  </button>
+                </div>
+                <div
+                  role="grid"
+                  aria-label={monthLabel}
+                  className="grid grid-cols-7 gap-1 text-center"
+                >
+                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
+                    (weekday) => (
+                      <span
+                        key={weekday}
+                        role="columnheader"
+                        className="py-1 text-xs font-bold text-slate-500"
+                      >
+                        {weekday}
+                      </span>
+                    ),
+                  )}
+                  {Array.from({ length: firstWeekday }, (_, index) => (
+                    <div
+                      key={`empty-${index}`}
+                      role="gridcell"
+                      aria-hidden="true"
+                    />
+                  ))}
+                  {Array.from({ length: daysInMonth }, (_, index) => {
+                    const day = index + 1;
+                    const date = new Date(
+                      calendarMonth.getFullYear(),
+                      calendarMonth.getMonth(),
+                      day,
+                    );
+                    const dateValue = formatLocalDate(date);
+                    const isPast = dateValue < today;
+                    const isSelected = dateValue === appointmentDate;
+
+                    return (
+                      <div key={dateValue} role="gridcell">
+                        <button
+                          type="button"
+                          aria-label={date.toLocaleDateString(undefined, {
+                            dateStyle: "full",
+                          })}
+                          aria-pressed={isSelected}
+                          disabled={isPast}
+                          onClick={() => {
+                            setAppointmentDate(dateValue);
+                            setSubmissionError("");
+                          }}
+                          className={`aspect-square w-full rounded-full text-sm font-bold transition focus:outline-none focus:ring-2 focus:ring-amber-500 ${
+                            isSelected
+                              ? "bg-amber-600 text-white"
+                              : isPast
+                                ? "cursor-not-allowed text-slate-300"
+                                : "text-slate-700 hover:bg-amber-100"
+                          }`}
+                        >
+                          {day}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <p className="mt-2 text-sm font-bold text-slate-700" aria-live="polite">
+                {appointmentDate
+                  ? `Selected: ${new Date(
+                      `${appointmentDate}T00:00:00`,
+                    ).toLocaleDateString(undefined, {
+                      dateStyle: "long",
+                    })}`
+                  : "No appointment day selected."}
+              </p>
+            </fieldset>
 
             <button
               type="submit"

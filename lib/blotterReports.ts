@@ -4,10 +4,14 @@ export type BlotterReport = {
   concern: string;
   location: string;
   requestedHelp: string;
+  appointmentDate?: string;
   createdAt: string;
 };
 
-export type NewBlotterReport = Omit<BlotterReport, "id" | "createdAt">;
+export type NewBlotterReport = Omit<
+  BlotterReport,
+  "id" | "createdAt" | "appointmentDate"
+> & { appointmentDate: string };
 export type BlotterReportsSnapshot = {
   reports: BlotterReport[];
   error: string | null;
@@ -31,6 +35,8 @@ function isBlotterReport(value: unknown): value is BlotterReport {
     typeof report.concern === "string" &&
     typeof report.location === "string" &&
     typeof report.requestedHelp === "string" &&
+    (report.appointmentDate === undefined ||
+      typeof report.appointmentDate === "string") &&
     typeof report.createdAt === "string"
   );
 }
