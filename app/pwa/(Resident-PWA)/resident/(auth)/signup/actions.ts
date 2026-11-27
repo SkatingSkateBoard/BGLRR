@@ -48,7 +48,6 @@ export async function signUpResident(formData: UserFormValues) {
           medical_description: formData.medical_description,
           emergency_person: formData.emergency_person,
           emergency_contact_number: formData.emergency_contact_number,
-          role: "resident",
         }
       }
     })

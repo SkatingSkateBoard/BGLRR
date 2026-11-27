@@ -41,12 +41,14 @@ export default function StatusScreen({
   children,
   actionLabel,
   actionHref,
+  footer,
 }: {
   tone: Tone;
   title: string;
   children: ReactNode;
   actionLabel?: string;
   actionHref?: string;
+  footer?: ReactNode;
 }) {
   const t = TONES[tone];
 
@@ -73,6 +75,8 @@ export default function StatusScreen({
             {actionLabel}
           </Link>
         )}
+
+        {footer}
 
         <p className="mt-10 text-xs font-bold italic text-slate-500">Pindot mo, Rescue ko.</p>
       </section>

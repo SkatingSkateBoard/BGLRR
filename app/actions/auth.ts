@@ -47,7 +47,9 @@ export async function operatorLogin(identifier: string, password: string) {
 
 }
 
-export async function isResidentVerified() {
+export async function 
+
+isResidentVerified() {
   const supabase = await createClient();
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   

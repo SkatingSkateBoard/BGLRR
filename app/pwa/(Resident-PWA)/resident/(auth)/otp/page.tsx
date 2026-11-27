@@ -10,6 +10,7 @@ const supabase = createClient();
 export default function OtpPage() {
   const router = useRouter();
   const otpInputRef = useRef<HTMLInputElement>(null);
+  const autoVerifiedRef = useRef(false);
 
   const [email, setEmail] = useState("");
   const [otpSource, setOtpSource] = useState("");
@@ -19,8 +20,44 @@ export default function OtpPage() {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
 
+  async function verifyCode(targetEmail: string, targetToken: string) {
+    if (loading) return;
+
+    setError("");
+    setMessage("");
+    setLoading(true);
+
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: targetEmail,
+      token: targetToken,
+      type: "signup",
+    });
+
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+      return;
+    }
+
+    sessionStorage.removeItem("signupEmail");
+    sessionStorage.removeItem("otpSource");
+
+    if (!data.session) {
+      setError("Verification succeeded, but no session was created.");
+      setLoading(false);
+      return;
+    }
+
+    router.push("/pwa/resident/dashboard");
+    router.refresh();
+  }
+
   useEffect(() => {
-    const savedEmail = sessionStorage.getItem("signupEmail");
+    const params = new URLSearchParams(window.location.search);
+    const urlEmail = params.get("email");
+    const urlCode = params.get("code")?.replace(/\D/g, "").slice(0, 6);
+
+    const savedEmail = urlEmail || sessionStorage.getItem("signupEmail");
     const savedOtpSource = sessionStorage.getItem("otpSource");
 
     if (!savedEmail) {
@@ -30,8 +67,19 @@ export default function OtpPage() {
 
     const verifiedEmail: string = savedEmail;
 
+    // Save email to sessionStorage so "Send code again" works even if opened from an email link
+    sessionStorage.setItem("signupEmail", verifiedEmail);
+
     setEmail(verifiedEmail);
     setOtpSource(savedOtpSource || "signup");
+
+    // If opened from the email button (?email=...&code=123456), auto-fill and verify
+    if (urlCode && urlCode.length === 6 && !autoVerifiedRef.current) {
+      autoVerifiedRef.current = true;
+      setOtpToken(urlCode);
+      verifyCode(verifiedEmail, urlCode);
+      return;
+    }
 
     otpInputRef.current?.focus();
 
@@ -64,44 +112,17 @@ export default function OtpPage() {
   async function handleVerify(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    setError("");
-    setMessage("");
-
     if (!email) {
       setError("Email was not found. Please try again.");
       return;
     }
 
     if (otpToken.length < 6) {
-      setError("Please enter the complete verification code.");
+      setError("Please enter the complete 6-digit verification code.");
       return;
     }
 
-    setLoading(true);
-
-    const { data, error } = await supabase.auth.verifyOtp({
-      email,
-      token: otpToken,
-      type: "signup",
-    });
-
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-      return;
-    }
-
-    sessionStorage.removeItem("signupEmail");
-    sessionStorage.removeItem("otpSource");
-
-    if (!data.session) {
-      setError("Verification succeeded, but no session was created.");
-      setLoading(false);
-      return;
-    }
-
-    router.push("/pwa/resident/dashboard");
-    router.refresh();
+    await verifyCode(email, otpToken);
   }
 
   async function handleResend() {
@@ -214,15 +235,20 @@ export default function OtpPage() {
               onChange={(event) => {
                 const onlyNumbers = event.target.value
                   .replace(/\D/g, "")
-                  .slice(0, 8);
+                  .slice(0, 6);
 
                 setOtpToken(onlyNumbers);
                 setError("");
+
+                // Auto-submit as soon as all 6 digits are entered
+                if (onlyNumbers.length === 6 && email) {
+                  verifyCode(email, onlyNumbers);
+                }
               }}
-              maxLength={8}
+              maxLength={6}
               inputMode="numeric"
               autoComplete="one-time-code"
-              pattern="[0-9]{6,8}"
+              pattern="[0-9]{6}"
               placeholder="123456"
               required
               className="h-14 w-full rounded-xl border border-blue-300 bg-white/80 px-4 text-center text-2xl font-bold tracking-[0.45em] text-blue-900 outline-none transition placeholder:text-base placeholder:font-normal placeholder:tracking-normal placeholder:text-gray-400 focus:border-blue-700 focus:ring-2 focus:ring-blue-300"
