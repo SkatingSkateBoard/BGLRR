@@ -1,3 +1,5 @@
+'use server';
+
 import { createClient } from "@/utils/supabase/server";
 
 export type RejectionResult = { reason: string | null; error: string | null };
